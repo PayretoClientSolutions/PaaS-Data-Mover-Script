@@ -36,6 +36,8 @@ def move_to_sent_folder(file: Path, cwd: Path) -> None:
     """
     logging.info(f"Moving file {file.name} to 'sent' directory.")
     destination = cwd / 'sent' / file.name
+
+    # Todo: add validation to check if file already exists in the destination
     shutil.move(file, destination)
 
 
@@ -73,7 +75,7 @@ def main() -> None:
     # Iterate through each file path for processing
     file_paths = get_files_list(cwd)
 
-    # Stop processing if no files found
+    # Stop processing if the list is empty
     if not file_paths:
         logging.info("No files found in 'received' directory. Exiting...")
         return
