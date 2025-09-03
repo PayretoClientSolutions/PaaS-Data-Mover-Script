@@ -1,6 +1,7 @@
 import logging
-from pathlib import Path
 import shutil
+from pathlib import Path
+
 
 def init_logger():
     """
@@ -15,6 +16,7 @@ def init_logger():
         ]
     )
 
+
 def get_files_list(cwd: Path) -> list[Path]:
     """
     Returns the list of file paths from the 'received' directory in the current working directory.
@@ -25,6 +27,7 @@ def get_files_list(cwd: Path) -> list[Path]:
 
     files_list = [f for f in received_dir.iterdir() if f.is_file()]
     return files_list
+
 
 def move_to_sent_folder(file: Path, cwd: Path):
     """
@@ -56,7 +59,6 @@ def main():
 
         # After uploading, move the file to the 'sent' folder
         move_to_sent_folder(file, cwd)
-
 
 
 if __name__ == "__main__":
