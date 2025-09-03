@@ -49,12 +49,10 @@ def validate_directories(cwd: Path) -> None:
         cwd / 'received',
         cwd / 'sent'
     ]
-
     for directory in required_dirs:
         if not directory.exists():
-            logging.fatal(
-                f"Required directory '{directory}' does not exist. Exiting..."
-            )
+            error_msg = f"Required directory '{directory}' does not exist. Exiting..."
+            logging.fatal(error_msg)
             sys.exit(1)
 
 
