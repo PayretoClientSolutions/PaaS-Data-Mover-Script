@@ -34,7 +34,7 @@ def move_to_sent_folder(file: Path, cwd: Path) -> None:
     Move the processed file to the 'sent' directory.
     The 'sent' directory must exist before moving files.
     """
-    logging.info(f"Moving file {file.name} to 'sent' directory.")
+    logging.info(f"Moving file '{file.name}' to the 'sent' directory.")
     destination = cwd / 'sent' / file.name
 
     # Todo: add validation to check if file already exists in the destination
@@ -60,8 +60,8 @@ def main() -> None:
     """
     Step 1. Get the list of files
     Step 2. Iterate through the list
-        Step 2.5 Upload file to the data lake
-        Step 2.6 Move file to 'sent' directory
+        Step 2.5 Upload the file to the data lake
+        Step 2.6 Move the file to 'sent' directory
     """
     # Start logging both in the terminal and the log file
     init_logger()
@@ -75,7 +75,7 @@ def main() -> None:
 
     # Stop processing if the list is empty
     if not file_paths:
-        logging.info("No files found in 'received' directory. Exiting...")
+        logging.info("No file(s) found in 'received' directory. Exiting...")
         return
 
     for file in file_paths:
