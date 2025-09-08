@@ -101,7 +101,7 @@ def main() -> None:
         logging.info("No file(s) found in 'incoming' directory. Exiting...")
         return
 
-    # Iterate through each file path for processingß
+    # Iterate through each file path for processing
     for file in file_paths:
         upload_file_to_gcs(cwd, file)
         move_to_sent_folder(file, working_dir)
