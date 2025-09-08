@@ -63,6 +63,7 @@ def validate_directories(working_dir: Path) -> None:
 def upload_file_to_gcs(cwd: Path, file_path: Path) -> None:
     """
     Uploads a file to Google Cloud Storage.
+    The GCS credentials file renamed to 'gcs.json' must be located in the current working directory.
     """
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(cwd / "gcs.json")
     _bucket_name_: str = 'aci_raw'
