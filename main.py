@@ -94,7 +94,6 @@ def main() -> None:
     # check if required directories exist
     validate_directories(working_dir)
 
-    # Iterate through each file path for processing
     file_paths = get_files_list(working_dir)
 
     # Stop processing if the list is empty
@@ -102,6 +101,7 @@ def main() -> None:
         logging.info("No file(s) found in 'incoming' directory. Exiting...")
         return
 
+    # Iterate through each file path for processingß
     for file in file_paths:
         upload_file_to_gcs(cwd, file)
         move_to_sent_folder(file, working_dir)
