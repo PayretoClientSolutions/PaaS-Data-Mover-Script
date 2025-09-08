@@ -1,7 +1,10 @@
 import logging
+import os
 import shutil
 import sys
 from pathlib import Path
+
+from google.cloud import storage
 
 
 def init_logger() -> None:
@@ -18,38 +21,39 @@ def init_logger() -> None:
     )
 
 
-def get_files_list(cwd: Path) -> list[Path]:
+def get_files_list(working_dir: Path) -> list[Path]:
     """
-    Returns the list of file paths from the 'received' directory in the current working directory.
+    Returns the list of file paths from the 'incoming' directory in the current working directory.
     """
-    received_dir = cwd / 'received'
-    logging.info(f"Looking for files in directory: {received_dir}")
+    incoming_dir = working_dir / 'incoming'
+    logging.info(f"Looking for files in directory: {incoming_dir}")
 
-    files_list = [f for f in received_dir.iterdir() if f.is_file()]
+    files_list = [f for f in incoming_dir.iterdir() if f.is_file()]
     return files_list
 
 
-def move_to_sent_folder(file: Path, cwd: Path) -> None:
+def move_to_sent_folder(file: Path, working_dir: Path) -> None:
     """
     Move the processed file to the 'sent' directory.
     The 'sent' directory must exist before moving files.
     """
     logging.info(f"Moving file '{file.name}' to the 'sent' directory.")
-    destination = cwd / 'sent' / file.name
+    destination = working_dir / 'sent' / file.name
 
     # Todo: add validation to check if file already exists in the destination
     shutil.move(file, destination)
 
 
-def validate_directories(cwd: Path) -> None:
+def validate_directories(working_dir: Path) -> None:
     """
     Check that required directories exist, exit if not.
     """
     required_dirs = [
-        cwd / 'received',
-        cwd / 'sent'
+        working_dir / 'incoming',
+        working_dir / 'sent'
     ]
     for directory in required_dirs:
+        logging.info(f"Checking if directory exists: {directory}")
         if not directory.exists():
             error_msg = f"Required directory '{directory}' does not exist. Exiting..."
             logging.fatal(error_msg)
@@ -65,25 +69,36 @@ def main() -> None:
     """
     # Start logging both in the terminal and the log file
     init_logger()
+    cwd = Path.cwd()
+    working_dir = Path.home()
+
+    # init GCS
+    # os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(cwd / "gcs.json")
 
     # check if required directories exist
-    cwd = Path.cwd()
-    validate_directories(cwd)
+    validate_directories(working_dir)
 
     # Iterate through each file path for processing
-    file_paths = get_files_list(cwd)
+    file_paths = get_files_list(working_dir)
 
     # Stop processing if the list is empty
     if not file_paths:
-        logging.info("No file(s) found in 'received' directory. Exiting...")
+        logging.info("No file(s) found in 'incoming' directory. Exiting...")
         return
 
     for file in file_paths:
         # Todo: upload file to the data lake
 
         # After uploading, move the file to the 'sent' folder
-        move_to_sent_folder(file, cwd)
+        move_to_sent_folder(file, working_dir)
 
 
 if __name__ == "__main__":
+    # cwd = Path.cwd()
+
+    # # init GCS
+    # os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(cwd / "gcs.json")
+    # client = storage.Client()
+    # bucket = client.get_bucket('your-bucket-name')
+
     main()

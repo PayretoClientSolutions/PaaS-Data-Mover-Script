@@ -13,3 +13,4 @@ sent
 app.log
 
 gcs.json
+.env
