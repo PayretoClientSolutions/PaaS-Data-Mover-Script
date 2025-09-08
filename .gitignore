@@ -11,3 +11,5 @@ wheels/
 received
 sent
 app.log
+
+gcs.json
