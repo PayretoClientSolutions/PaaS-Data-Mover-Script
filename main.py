@@ -60,6 +60,22 @@ def validate_directories(working_dir: Path) -> None:
             sys.exit(1)
 
 
+def upload_file_to_gcs(cwd: Path, file_path: Path) -> None:
+    """
+    Uploads a file to Google Cloud Storage.
+    """
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(cwd / "gcs.json")
+    _bucket_name_: str = 'your-bucket-name'
+    client = storage.Client()
+
+    # bucket instance
+    bucket = client.get_bucket(_bucket_name_)
+
+    # upload the file
+    blob = bucket.blob(file_path.name)
+    blob.upload_from_filename(filename=str(file_path))
+
+
 def main() -> None:
     """
     Step 1. Get the list of files
@@ -71,9 +87,6 @@ def main() -> None:
     init_logger()
     cwd = Path.cwd()
     working_dir = Path.home()
-
-    # init GCS
-    # os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(cwd / "gcs.json")
 
     # check if required directories exist
     validate_directories(working_dir)
@@ -87,18 +100,9 @@ def main() -> None:
         return
 
     for file in file_paths:
-        # Todo: upload file to the data lake
-
-        # After uploading, move the file to the 'sent' folder
+        upload_file_to_gcs(cwd, file)
         move_to_sent_folder(file, working_dir)
 
 
 if __name__ == "__main__":
-    # cwd = Path.cwd()
-
-    # # init GCS
-    # os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(cwd / "gcs.json")
-    # client = storage.Client()
-    # bucket = client.get_bucket('your-bucket-name')
-
     main()
