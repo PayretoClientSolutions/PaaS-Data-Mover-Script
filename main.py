@@ -15,8 +15,8 @@ def init_logger() -> None:
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
         handlers=[
-            logging.FileHandler("app.log", mode="a"),  # logs to a file
-            logging.StreamHandler()  # logs to console
+            logging.FileHandler("app.log", mode="a"),  # Logs to a file.
+            logging.StreamHandler()  # Logs to console.
         ]
     )
 
