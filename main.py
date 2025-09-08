@@ -60,12 +60,11 @@ def validate_directories(working_dir: Path) -> None:
             sys.exit(1)
 
 
-def upload_file_to_gcs(cwd: Path, file_path: Path) -> None:
+def upload_file_to_gcs(file_path: Path) -> bool:
     """
-    Uploads a file to Google Cloud Storage.
+    Uploads a file to Google Cloud Storage. Returns True if upload is successful, False otherwise.
     The GCS credentials file renamed to 'gcs.json' must be located in the current working directory.
     """
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(cwd / "gcs.json")
     _bucket_name_: str = 'aci_raw'
     client = storage.Client()
 
@@ -76,8 +75,15 @@ def upload_file_to_gcs(cwd: Path, file_path: Path) -> None:
     logging.info(
         f"Uploading file '{file_path.name}' to GCS bucket '{_bucket_name_}'"
     )
-    blob = bucket.blob(file_path.name)
-    blob.upload_from_filename(filename=str(file_path))
+
+    try:
+        blob = bucket.blob(file_path.name)
+        blob.upload_from_filename(filename=str(file_path))
+        return True
+
+    except Exception as e:
+        logging.error(f"Failed to upload file '{file_path.name}' to GCS: {e}")
+        return False
 
 
 def main() -> None:
@@ -89,8 +95,11 @@ def main() -> None:
     """
     # Start logging both in the terminal and the log file
     init_logger()
+
+    # init Path and set env variable for GCS credentials
     cwd = Path.cwd()
     working_dir = Path.home()
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(cwd / 'gcs.json')
 
     # check if required directories exist
     validate_directories(working_dir)
@@ -104,8 +113,8 @@ def main() -> None:
 
     # Iterate through each file path for processing
     for file in file_paths:
-        upload_file_to_gcs(cwd, file)
-        move_to_sent_folder(file, working_dir)
+        if upload_file_to_gcs(file):
+            move_to_sent_folder(file, working_dir)
 
 
 if __name__ == "__main__":
