@@ -63,6 +63,7 @@ def validate_directories(working_dir: Path) -> None:
 def upload_file_to_gcs(file_path: Path) -> bool:
     """
     Uploads a file to Google Cloud Storage. Returns True if upload is successful, False otherwise.
+    This function assumes that the GCS bucket 'aci_raw' already exists.
     The GCS credentials file renamed to 'gcs.json' must be located in the current working directory.
     """
     _bucket_name_: str = 'aci_raw'
