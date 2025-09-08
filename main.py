@@ -112,6 +112,7 @@ def main() -> None:
         return
 
     # Iterate through each file path for processing
+    # If the upload fails, do not move the file to 'sent' directory
     for file in file_paths:
         if upload_file_to_gcs(file):
             move_to_sent_folder(file, working_dir)
