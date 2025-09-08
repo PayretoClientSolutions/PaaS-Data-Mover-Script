@@ -65,13 +65,16 @@ def upload_file_to_gcs(cwd: Path, file_path: Path) -> None:
     Uploads a file to Google Cloud Storage.
     """
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(cwd / "gcs.json")
-    _bucket_name_: str = 'your-bucket-name'
+    _bucket_name_: str = 'aci_raw'
     client = storage.Client()
 
     # bucket instance
     bucket = client.get_bucket(_bucket_name_)
 
     # upload the file
+    logging.info(
+        f"Uploading file '{file_path.name}' to GCS bucket '{_bucket_name_}'"
+    )
     blob = bucket.blob(file_path.name)
     blob.upload_from_filename(filename=str(file_path))
 
