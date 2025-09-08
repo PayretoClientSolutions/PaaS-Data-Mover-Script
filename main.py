@@ -66,15 +66,16 @@ def upload_file_to_gcs(file_path: Path) -> bool:
     This function assumes that the GCS bucket 'aci_raw' already exists.
     The GCS credentials file renamed to 'gcs.json' must be located in the current working directory.
     """
-    _bucket_name_: str = 'aci_raw'
+    # Initialize GCS client.
     client = storage.Client()
 
-    # bucket instance
-    bucket = client.get_bucket(_bucket_name_)
+    # Initialize Bucket instance.
+    bucket_name: str = 'aci_raw'
+    bucket = client.get_bucket(bucket_name)
 
-    # upload the file
+    # Upload the file.
     logging.info(
-        f"Uploading file '{file_path.name}' to GCS bucket '{_bucket_name_}'"
+        f"Uploading file '{file_path.name}' to GCS bucket '{bucket_name}'"
     )
 
     try:
@@ -94,26 +95,26 @@ def main() -> None:
         Step 2.5 Upload the file to the data lake
         Step 2.6 Move the file to 'sent' directory
     """
-    # Start logging both in the terminal and the log file
+    # Start logging both in the terminal and the log file.
     init_logger()
 
-    # init Path and set env variable for GCS credentials
+    # Init Path and set env variable for GCS credentials.
     cwd = Path.cwd()
     working_dir = Path.home()
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(cwd / 'gcs.json')
 
-    # check if required directories exist
+    # Check if required directories exist.
     validate_directories(working_dir)
 
     file_paths = get_files_list(working_dir)
 
-    # Stop processing if the list is empty
+    # Stop processing if the list is empty.
     if not file_paths:
         logging.info("No file(s) found in 'incoming' directory. Exiting...")
         return
 
-    # Iterate through each file path for processing
-    # If the upload fails, do not move the file to 'sent' directory
+    # Iterate through each file path for processing.
+    # If the upload fails, do not move the file to 'sent' directory.
     for file in file_paths:
         if upload_file_to_gcs(file):
             move_to_sent_folder(file, working_dir)
