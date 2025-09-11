@@ -24,11 +24,17 @@ def init_logger() -> None:
 def get_files_list(working_dir: Path) -> list[Path]:
     """
     Returns the list of file paths from the 'incoming' directory in the current working directory.
+    Exits the script if the directory is empty.
     """
     incoming_dir = working_dir / 'incoming'
     logging.info(f"Looking for files in directory: {incoming_dir}")
 
     files_list = [f for f in incoming_dir.iterdir() if f.is_file()]
+    if not files_list:
+        logging.fatal("'incoming' directory is empty. Exiting...")
+        sys.exit(1)
+
+    logging.info(f"Found {len(files_list)} file(s) in 'incoming' directory.")
     return files_list
 
 
@@ -55,8 +61,9 @@ def validate_directories(working_dir: Path) -> None:
     for directory in required_dirs:
         logging.info(f"Checking if directory exists: {directory}")
         if not directory.exists():
-            error_msg = f"Required directory '{directory}' does not exist. Exiting..."
-            logging.fatal(error_msg)
+            logging.fatal(
+                f"Required directory '{directory}' does not exist. Exiting..."
+            )
             sys.exit(1)
 
 
@@ -99,25 +106,24 @@ def main() -> None:
     init_logger()
 
     # Init Path and set env variable for GCS credentials.
-    cwd = Path.cwd()
     working_dir = Path.home()
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(cwd / 'gcs.json')
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(Path.cwd() / 'gcs.json')
 
-    # Check if required directories exist.
+    # Check if required directories exist, proceed if they do.
     validate_directories(working_dir)
-
-    file_paths = get_files_list(working_dir)
-
-    # Stop processing if the list is empty.
-    if not file_paths:
-        logging.info("No file(s) found in 'incoming' directory. Exiting...")
-        return
+    files_list = get_files_list(working_dir)
 
     # Iterate through each file path for processing.
     # If the upload fails, do not move the file to 'sent' directory.
-    for file in file_paths:
+    uploaded_files_count = 0
+    for file in files_list:
         if upload_file_to_gcs(file):
+            uploaded_files_count += 1
             move_to_sent_folder(file, working_dir)
+
+    logging.info(
+        f"Uploaded {uploaded_files_count} out of {len(files_list)} file(s) successfully."
+    )
 
 
 if __name__ == "__main__":
