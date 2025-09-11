@@ -50,9 +50,10 @@ def move_to_sent_folder(file: Path, working_dir: Path) -> None:
     shutil.move(file, destination)
 
 
-def validate_directories(working_dir: Path) -> None:
+def validate_directories(working_dir: Path) -> Path:
     """
-    Check that required directories exist, exit if not.
+    Check that required directories exist, exit if not.\n
+    Returns the working directory Path object if all required directories exist.
     """
     required_dirs = [
         working_dir / 'incoming',
@@ -66,10 +67,13 @@ def validate_directories(working_dir: Path) -> None:
             )
             sys.exit(1)
 
+    return working_dir
+
 
 def upload_file_to_gcs(file_path: Path) -> bool:
     """
-    Uploads a file to Google Cloud Storage. Returns True if upload is successful, False otherwise.
+    Uploads a file to Google Cloud Storage.\n
+    Returns True if upload is successful, False otherwise.\n
     This function assumes that the GCS bucket 'aci_raw' already exists.
     The GCS credentials file renamed to 'gcs.json' must be located in the current working directory.
     """
@@ -97,10 +101,10 @@ def upload_file_to_gcs(file_path: Path) -> bool:
 
 def main() -> None:
     """
-    Step 1. Get the list of files
-    Step 2. Iterate through the list
-        Step 2.5 Upload the file to the data lake
-        Step 2.6 Move the file to 'sent' directory
+    Step 1. Get the list of files.\n
+    Step 2. Iterate through the list.\n
+    Step 2.5 Upload the file to the data lake.\n
+    Step 2.6 Move the uploaded file to 'sent' directory.\n
     """
     # Start logging both in the terminal and the log file.
     init_logger()
@@ -110,8 +114,7 @@ def main() -> None:
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(Path.cwd() / 'gcs.json')
 
     # Check if required directories exist, proceed if they do.
-    validate_directories(working_dir)
-    files_list = get_files_list(working_dir)
+    files_list = get_files_list(validate_directories(working_dir))
 
     # Iterate through each file path for processing.
     # If the upload fails, do not move the file to 'sent' directory.
