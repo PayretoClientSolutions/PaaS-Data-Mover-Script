@@ -79,6 +79,7 @@ def upload_file_to_gcs(file_path: Path) -> bool:
     The GCS credentials file renamed to 'gcs.json' must be located in the current working directory.
     """
     # Initialize GCS client.
+    logging.info("Initializing Google Cloud Storage client.")
     client = storage.Client()
 
     # Initialize Bucket instance.
