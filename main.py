@@ -24,18 +24,18 @@ def init_logger() -> None:
 
 def get_files_list(working_dir: Path) -> list[Path]:
     """
-    Returns the list of file paths from the 'incoming' directory in the current working directory.
+    Returns the list of file paths from the 'uploads' directory in the current working directory.
     Exits the script if the directory is empty.
     """
-    incoming_dir = working_dir / 'incoming'
+    incoming_dir = working_dir / 'uploads'
     logging.info(f"Looking for files in directory: {incoming_dir}")
 
     files_list = [f for f in incoming_dir.iterdir() if f.is_file()]
     if not files_list:
-        logging.fatal("'incoming' directory is empty. Exiting...")
+        logging.fatal("'uploads' directory is empty. Exiting...")
         sys.exit(1)
 
-    logging.info(f"Found {len(files_list)} file(s) in 'incoming' directory.")
+    logging.info(f"Found {len(files_list)} file(s) in 'uploads' directory.")
     return files_list
 
 
@@ -112,7 +112,7 @@ def main() -> None:
     load_dotenv()  # take environment variables
 
     # Init Path and set env variable for GCS credentials.
-    working_dir = Path(os.environ.get("ACI_USER_PATH", "/home/aci/uploads"))
+    working_dir = Path(os.environ.get("ACI_USER_PATH", "/home/aci"))
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(Path.cwd() / 'gcs.json')
 
     # Check if required directories exist, proceed if they do.
