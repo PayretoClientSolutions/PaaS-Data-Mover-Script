@@ -4,6 +4,7 @@ import shutil
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
 from google.cloud import storage
 
 
@@ -56,7 +57,7 @@ def validate_directories(working_dir: Path) -> Path:
     Returns the working directory Path object if all required directories exist.
     """
     required_dirs = [
-        working_dir / 'incoming',
+        working_dir / 'uploads',
         working_dir / 'sent'
     ]
     for directory in required_dirs:
@@ -108,9 +109,10 @@ def main() -> None:
     """
     # Start logging both in the terminal and the log file.
     init_logger()
+    load_dotenv()  # take environment variables
 
     # Init Path and set env variable for GCS credentials.
-    working_dir = Path.home()
+    working_dir = Path(os.environ.get("ACI_USER_PATH", "/home/aci/uploads"))
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(Path.cwd() / 'gcs.json')
 
     # Check if required directories exist, proceed if they do.
