@@ -83,7 +83,11 @@ def upload_file_to_gcs(file_path: Path) -> bool:
 
     # Initialize Bucket instance.
     bucket_name: str = 'aci_raw'
-    bucket = client.get_bucket(bucket_name)
+    try:
+        bucket = client.get_bucket(bucket_name)
+    except Exception as e:
+        logging.fatal(f"Could not access GCS bucket '{bucket_name}': {e}")
+        sys.exit(1)
 
     # Upload the file.
     logging.info(
