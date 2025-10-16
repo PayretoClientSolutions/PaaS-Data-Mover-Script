@@ -91,11 +91,10 @@ def upload_file_to_gcs(file_path: Path) -> bool:
         sys.exit(1)
 
     # Upload the file.
-    logging.info(
-        f"Uploading file '{file_path.name}' to GCS bucket '{bucket_name}'"
-    )
-
     try:
+        logging.info(
+            f"Uploading file '{file_path.name}' to GCS bucket '{bucket_name}'"
+        )
         blob = bucket.blob(file_path.name)
         blob.upload_from_filename(filename=str(file_path))
         return True
