@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 import sys
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -78,6 +79,7 @@ def upload_file_to_gcs(file_path: Path) -> bool:
     This function assumes that the GCS bucket 'aci_raw' already exists.
     The GCS credentials file renamed to 'gcs.json' must be located in the current working directory.
     """
+
     # Initialize GCS client.
     logging.info("Initializing Google Cloud Storage client.")
     client = storage.Client()
@@ -111,6 +113,7 @@ def main() -> None:
     Step 2.5 Upload the file to the data lake.\n
     Step 2.6 Move the uploaded file to 'sent' directory.\n
     """
+
     # Start logging both in the terminal and the log file.
     init_logger()
     load_dotenv()  # take environment variables
@@ -122,6 +125,9 @@ def main() -> None:
     # Check if required directories exist, proceed if they do.
     files_list = get_files_list(validate_directories(working_dir))
 
+    # start timer to measure performance
+    start = time.perf_counter()
+
     # Iterate through each file path for processing.
     # If the upload fails, do not move the file to 'sent' directory.
     uploaded_files_count = 0
@@ -130,9 +136,10 @@ def main() -> None:
             uploaded_files_count += 1
             move_to_sent_folder(file, working_dir)
 
-    logging.info(
-        f"Uploaded {uploaded_files_count} out of {len(files_list)} file(s) successfully."
-    )
+    # end timer then log duration
+    end = time.perf_counter()
+    final_msg = f"Uploaded {uploaded_files_count} out of {len(files_list)} file(s) successfully for {end - start:.6f} seconds."
+    logging.info(final_msg)
 
 
 if __name__ == "__main__":
