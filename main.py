@@ -45,7 +45,7 @@ def move_to_sent_folder(file: Path, sent_dir: Path) -> None:
     Move the processed file to the 'sent' directory.
     The 'sent' directory must exist before moving files.
     """
-    logging.info(f"Moving file '{file.name}' to the 'sent' directory.")
+    logging.info(f"Moving file '{file.name}' to '{sent_dir}'.")
     destination = sent_dir / file.name
 
     # Todo: add validation to check if file already exists in the destination
