@@ -28,48 +28,40 @@ def get_files_list(working_dir: Path) -> list[Path]:
     Returns the list of file paths from the 'uploads' directory in the current working directory.
     Exits the script if the directory is empty.
     """
-    incoming_dir = working_dir / 'uploads'
+    incoming_dir = working_dir
     logging.info(f"Looking for files in directory: {incoming_dir}")
 
     files_list = [f for f in incoming_dir.iterdir() if f.is_file()]
     if not files_list:
-        logging.fatal("'uploads' directory is empty. Exiting...")
+        logging.fatal("Incoming directory is empty. Exiting...")
         sys.exit(1)
 
-    logging.info(f"Found {len(files_list)} file(s) in 'uploads' directory.")
+    logging.info(f"Found {len(files_list)} file(s) in incoming directory.")
     return files_list
 
 
-def move_to_sent_folder(file: Path, working_dir: Path) -> None:
+def move_to_sent_folder(file: Path, sent_dir: Path) -> None:
     """
     Move the processed file to the 'sent' directory.
     The 'sent' directory must exist before moving files.
     """
     logging.info(f"Moving file '{file.name}' to the 'sent' directory.")
-    destination = working_dir / 'sent' / file.name
+    destination = sent_dir / file.name
 
     # Todo: add validation to check if file already exists in the destination
     shutil.move(file, destination)
 
 
-def validate_directories(working_dir: Path) -> Path:
+def validate_directories(dir: Path) -> None:
     """
-    Check that required directories exist, exit if not.\n
-    Returns the working directory Path object if all required directories exist.
+    Check that the required directory exists, exit if not.
     """
-    required_dirs = [
-        working_dir / 'uploads',
-        working_dir / 'sent'
-    ]
-    for directory in required_dirs:
-        logging.info(f"Checking if directory exists: {directory}")
-        if not directory.exists():
-            logging.fatal(
-                f"Required directory '{directory}' does not exist. Exiting..."
-            )
-            sys.exit(1)
-
-    return working_dir
+    logging.info(f"Checking if directory exists: {dir}")
+    if not dir.exists():
+        logging.fatal(
+            f"Required directory '{dir}' does not exist. Exiting..."
+        )
+        sys.exit(1)
 
 
 def upload_file_to_gcs(file_path: Path) -> bool:
@@ -119,11 +111,18 @@ def main() -> None:
     load_dotenv()  # take environment variables
 
     # Init Path and set env variable for GCS credentials.
-    working_dir = Path(os.environ.get("ACI_USER_PATH", "/home/aci"))
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(Path.cwd() / 'gcs.json')
+    working_dir = Path(os.environ.get("ACI_USER_PATH", "/home/aci/uploads"))
+    sent_dir = Path(os.environ.get("SENT_ITEMS_PATH", "/home/aci/sent"))
 
-    # Check if required directories exist, proceed if they do.
-    files_list = get_files_list(validate_directories(working_dir))
+    # validate required directories exist
+    validate_directories(working_dir)
+    validate_directories(sent_dir)
+
+    # Fetch the list of files to be processed.
+    files_list = get_files_list(working_dir)
+
+    # init google GCS credentials
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(Path.cwd() / 'gcs.json')
 
     # start timer to measure performance
     start = time.perf_counter()
@@ -134,7 +133,7 @@ def main() -> None:
     for file in files_list:
         if upload_file_to_gcs(file):
             uploaded_files_count += 1
-            move_to_sent_folder(file, working_dir)
+            move_to_sent_folder(file, sent_dir)
 
     # end timer then log duration
     end = time.perf_counter()
