@@ -1,3 +1,5 @@
 class Fetcher:
-    def __init__(self) -> None:
-        pass
+    def __init__(self, hostname: str, username: str, password: str) -> None:
+        self.hostname = hostname
+        self.username = username
+        self.password = password
