@@ -1,12 +1,8 @@
 import logging
 import os
-import shutil
-import sys
-import time
 from pathlib import Path
 
 from dotenv import load_dotenv
-from google.cloud import storage
 
 from mover import Mover
 
@@ -26,11 +22,8 @@ def init_logger() -> None:
 
 
 def main() -> None:
-    # Start logging both in the terminal and the log file.
-    init_logger()
-
-    # take environment variables
-    load_dotenv()
+    init_logger()  # Start logging both in the terminal and the log file.
+    load_dotenv()  # take environment variables
 
     # initialize Mover class
     mover = Mover(
