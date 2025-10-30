@@ -6,6 +6,6 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "google-cloud-storage>=3.3.1",
-    "pysftp>=0.2.9",
+    "paramiko>=4.0.0",
     "python-dotenv>=1.1.1",
 ]

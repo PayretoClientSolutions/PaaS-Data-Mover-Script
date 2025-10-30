@@ -375,14 +375,14 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "google-cloud-storage" },
-    { name = "pysftp" },
+    { name = "paramiko" },
     { name = "python-dotenv" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "google-cloud-storage", specifier = ">=3.3.1" },
-    { name = "pysftp", specifier = ">=0.2.9" },
+    { name = "paramiko", specifier = ">=4.0.0" },
     { name = "python-dotenv", specifier = ">=1.1.1" },
 ]
 
@@ -493,15 +493,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/75/f7/41b6c0b9dd9970173b6acc026bab7b4c187e4e5beef2756d419ad65482da/pynacl-1.6.0-cp38-abi3-win_amd64.whl", hash = "sha256:cf831615cc16ba324240de79d925eacae8265b7691412ac6b24221db157f6bd1", size = 238802, upload-time = "2025-09-10T23:39:08.966Z" },
     { url = "https://files.pythonhosted.org/packages/8e/0f/462326910c6172fa2c6ed07922b22ffc8e77432b3affffd9e18f444dbfbb/pynacl-1.6.0-cp38-abi3-win_arm64.whl", hash = "sha256:84709cea8f888e618c21ed9a0efdb1a59cc63141c403db8bf56c469b71ad56f2", size = 183846, upload-time = "2025-09-10T23:39:10.552Z" },
 ]
-
-[[package]]
-name = "pysftp"
-version = "0.2.9"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "paramiko" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/36/60/45f30390a38b1f92e0a8cf4de178cd7c2bc3f874c85430e40ccf99df8fe7/pysftp-0.2.9.tar.gz", hash = "sha256:fbf55a802e74d663673400acd92d5373c1c7ee94d765b428d9f977567ac4854a", size = 25949, upload-time = "2016-07-06T00:19:28.988Z" }
 
 [[package]]
 name = "python-dotenv"

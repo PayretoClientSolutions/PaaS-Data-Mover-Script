@@ -4,6 +4,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from fetcher import Fetcher
 from mover import Mover
 
 
@@ -26,13 +27,22 @@ def main() -> None:
     load_dotenv()  # take environment variables
 
     # initialize Mover class
-    mover = Mover(
-        working_dir=Path(os.environ.get("ACI_USER_PATH", "/home/aci/uploads")),
-        sent_dir=Path(os.environ.get("SENT_ITEMS_PATH", "/home/aci/sent")),
-        path_to_gcs_credentials=str(Path.cwd() / 'gcs.json')
-    )
+    # mover = Mover(
+    #     working_dir=Path(os.environ.get("ACI_USER_PATH", "/home/aci/uploads")),
+    #     sent_dir=Path(os.environ.get("SENT_ITEMS_PATH", "/home/aci/sent")),
+    #     path_to_gcs_credentials=str(Path.cwd() / 'gcs.json')
+    # )
+    # mover.start()
 
-    mover.start()
+    fetcher = Fetcher(
+        hostname=os.environ.get("SFTP_HOSTNAME", "test.rebex.net"),
+        username=os.environ.get("SFTP_USERNAME", "admin"),
+        port=int(os.environ.get("SFTP_PORT", "22")),
+        password=os.environ.get("SFTP_PASSWORD", ""),
+        local_path=os.environ.get(
+            "SFTP_LOCAL_PATH", "/Users/fukazer0/dummy_server")
+    )
+    fetcher.fetch_files()
 
 
 if __name__ == "__main__":
