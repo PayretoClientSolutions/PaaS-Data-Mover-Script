@@ -6,7 +6,15 @@ import paramiko
 
 
 class Fetcher:
-    def __init__(self, hostname: str, port: int, username: str, password: str, local_path: str, target_file_type: str = '.csv', remote_path: str = "/pub/example") -> None:
+    def __init__(
+            self,
+            hostname: str,
+            port: int,
+            username: str,
+            password: str,
+            local_path: str,
+            target_file_type: str = '.csv',
+            remote_path: str = "./pub/example") -> None:
         self.hostname = hostname
         self.port = port
         self.username = username

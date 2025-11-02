@@ -33,8 +33,9 @@ def main() -> None:
         username=os.environ.get("SFTP_USERNAME", "admin"),
         port=int(os.environ.get("SFTP_PORT", "22")),
         password=os.environ.get("SFTP_PASSWORD", "password"),
+        local_path=os.environ.get("SFTP_LOCAL_PATH", "."),
         target_file_type=os.environ.get("SFTP_TARGET_FILE_TYPE", ".csv"),
-        local_path=os.environ.get("SFTP_LOCAL_PATH", "/")
+        remote_path=os.environ.get("SFTP_REMOTE_PATH", ".")
     )
     fetcher.fetch_files()
 
