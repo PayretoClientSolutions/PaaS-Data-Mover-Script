@@ -1,5 +1,6 @@
 import logging
 import sys
+import time
 
 import paramiko
 
@@ -40,6 +41,7 @@ class Fetcher:
 
         # open SFTP session
         try:
+            start_time = time.perf_counter()
             logging.info(f"Connecting to {self.hostname} via SFTP...")
             sftp_client = SSH_Client.open_sftp()
 
@@ -83,11 +85,14 @@ class Fetcher:
                     logging.error(f"Failed to remove {file_name}: {e}")
                     failed_deletions.append(file_name)
 
+            end = time.perf_counter()
+
             # summary logging
             logging.info(
                 f"Process complete: {len(downloaded_files)} downloaded, "
                 f"{len(failed_downloads)} failed downloads, "
-                f"{len(failed_deletions)} failed deletions"
+                f"{len(failed_deletions)} failed deletions, "
+                f"timed for {end - start_time:.6f} seconds."
             )
 
             if failed_downloads or failed_deletions:

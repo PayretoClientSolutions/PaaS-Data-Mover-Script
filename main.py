@@ -26,6 +26,8 @@ def main() -> None:
     init_logger()  # Start logging both in the terminal and the log file.
     load_dotenv()  # take environment variables
 
+    # initialize Fetcher class
+    logging.info("Starting Fetcher...")
     fetcher = Fetcher(
         hostname=os.environ.get("SFTP_HOSTNAME", "test.rebex.net"),
         username=os.environ.get("SFTP_USERNAME", "admin"),
@@ -36,6 +38,7 @@ def main() -> None:
     )
     fetcher.fetch_files()
 
+    logging.info("Starting Mover...")
     # initialize Mover class
     mover = Mover(
         working_dir=Path(os.environ.get("ACI_USER_PATH", "/home/aci/uploads")),
