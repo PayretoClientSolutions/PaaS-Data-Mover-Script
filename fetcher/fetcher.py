@@ -56,7 +56,7 @@ class Fetcher:
                 return
 
             logging.info(
-                f"Found: {len(csv_files)} files in path '{self.remote_path}'")
+                f"Found: {len(csv_files)} csv files in path '{self.remote_path}'")
 
             # tracking
             downloaded_files = []
@@ -79,7 +79,7 @@ class Fetcher:
 
                 # Delete the file from server if the download succeeded
                 try:
-                    logging.info(f"Deleting remote file '{file_name}'")
+                    logging.info(f"Deleting remote file {file_name}")
                     sftp_client.remove(remote_file_path)
                 except Exception as e:
                     logging.error(f"Failed to remove {file_name}: {e}")
@@ -90,8 +90,8 @@ class Fetcher:
             # summary logging
             logging.info(
                 f"Process complete: {len(downloaded_files)} downloaded, "
-                f"{len(failed_downloads)} failed downloads, "
-                f"{len(failed_deletions)} failed deletions, "
+                f"{len(failed_downloads)} FAILED downloads, "
+                f"{len(failed_deletions)} FAILED deletions, "
                 f"timed for {end - start_time:.6f} seconds."
             )
 

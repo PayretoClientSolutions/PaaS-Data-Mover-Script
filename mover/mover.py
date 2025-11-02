@@ -110,5 +110,5 @@ class Mover:
 
         # end timer then log duration
         end = time.perf_counter()
-        final_msg = f"Uploaded {uploaded_files_count} out of {len(files_list)} file(s) successfully for {end - start:.6f} seconds."
-        logging.info(final_msg)
+        logging.info(
+            f"Uploaded {uploaded_files_count} out of {len(files_list)} file(s) successfully for {end - start:.6f} seconds.")
