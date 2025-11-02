@@ -32,15 +32,14 @@ def main() -> None:
         hostname=os.environ.get("SFTP_HOSTNAME", "test.rebex.net"),
         username=os.environ.get("SFTP_USERNAME", "admin"),
         port=int(os.environ.get("SFTP_PORT", "22")),
-        password=os.environ.get("SFTP_PASSWORD", ""),
+        password=os.environ.get("SFTP_PASSWORD", "password"),
         target_file_type=os.environ.get("SFTP_TARGET_FILE_TYPE", ".csv"),
-        local_path=os.environ.get(
-            "SFTP_LOCAL_PATH", "/Users/fukazer0/dummy_server")
+        local_path=os.environ.get("SFTP_LOCAL_PATH", "/")
     )
     fetcher.fetch_files()
 
-    logging.info("Starting mover script...")
     # initialize Mover class
+    logging.info("Starting mover script...")
     mover = Mover(
         working_dir=Path(os.environ.get("ACI_USER_PATH", "/home/aci/uploads")),
         sent_dir=Path(os.environ.get("SENT_ITEMS_PATH", "/home/aci/sent")),
