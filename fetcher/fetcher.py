@@ -6,12 +6,13 @@ import paramiko
 
 
 class Fetcher:
-    def __init__(self, hostname: str, port: int, username: str, password: str, local_path: str, remote_path: str = "/pub/example") -> None:
+    def __init__(self, hostname: str, port: int, username: str, password: str, local_path: str, target_file_type: str = '.csv', remote_path: str = "/pub/example") -> None:
         self.hostname = hostname
         self.port = port
         self.username = username
         self.password = password
         self.local_path = local_path
+        self.target_file_type = target_file_type
         self.remote_path = remote_path
 
     def fetch_files(self) -> None:
@@ -45,25 +46,27 @@ class Fetcher:
             logging.info(f"Connecting to {self.hostname} via SFTP...")
             sftp_client = SSH_Client.open_sftp()
 
-            # list csv files in the remote directory
+            # list target files in the remote directory
             remote_files = sftp_client.listdir(self.remote_path)
-            csv_files = [f for f in remote_files if f.endswith('.csv')]
+            target_files = [f for f in remote_files if f.endswith(
+                self.target_file_type)
+            ]
 
-            # exit if no csv files found
-            if not csv_files:
+            # exit if no files found
+            if not target_files:
                 logging.info(
-                    f"No CSVs found in path '{self.remote_path}'.  Exiting...")
+                    f"No {self.target_file_type} file(s) found in path '{self.remote_path}'.  Exiting...")
                 return
 
             logging.info(
-                f"Found: {len(csv_files)} csv files in path '{self.remote_path}'")
+                f"Found: {len(target_files)} {self.target_file_type} file(s) in path '{self.remote_path}'")
 
             # tracking
             downloaded_files = []
             failed_downloads = []
             failed_deletions = []
 
-            for file_name in csv_files:
+            for file_name in target_files:
                 remote_file_path = f"{self.remote_path}/{file_name}"
                 local_file_path = f"{self.local_path}/{file_name}"
 
