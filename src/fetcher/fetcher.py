@@ -23,6 +23,13 @@ class Fetcher:
         self.target_file_type = target_file_type
         self.remote_path = remote_path
 
+        logging.info(
+            "Fetcher initialized with the following parameters: "
+            f"hostname={hostname}, port={port}, username={username}, "
+            f"local_path={local_path}, "
+            f"target_file_type={target_file_type}, remote_path={remote_path}"
+        )
+
     def fetch_files(self) -> None:
         """
         Connects to the remote server and fetches files from the specified remote path to the local path.

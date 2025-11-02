@@ -23,8 +23,17 @@ def init_logger() -> None:
 
 
 def main() -> None:
-    init_logger()  # Start logging both in the terminal and the log file.
-    load_dotenv()  # take environment variables
+    # Start logging both in the terminal and the log file.
+    init_logger()
+
+    # read environment variables from .env file
+    env_path = Path(__file__).resolve().parents[1] / "config" / ".env"
+    logging.info(f"Loading environment variables from: {env_path}")
+    load_dotenv(env_path)
+
+    if not env_path.exists():
+        logging.error(f"Environment file not found at: {env_path}")
+        return
 
     # initialize Fetcher class
     logging.info("Starting fetcher script...")
@@ -44,7 +53,8 @@ def main() -> None:
     mover = Mover(
         working_dir=Path(os.environ.get("ACI_USER_PATH", "/home/aci/uploads")),
         sent_dir=Path(os.environ.get("SENT_ITEMS_PATH", "/home/aci/sent")),
-        path_to_gcs_credentials=str(Path.cwd() / 'gcs.json')
+        path_to_gcs_credentials=str(
+            Path(__file__).parents[1] / "config" / "gcs.json")
     )
     mover.start()
 
