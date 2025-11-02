@@ -78,16 +78,13 @@ class Mover:
 
         # Upload the file.
         try:
-            logging.info(
-                f"Uploading file '{file_path.name}' to GCS bucket '{bucket_name}'"
-            )
+            logging.info(f"Uploading file {file_path.name}")
             blob = bucket.blob(file_path.name)
             blob.upload_from_filename(filename=str(file_path))
             return True
 
         except Exception as e:
-            logging.error(
-                f"Failed to upload file '{file_path.name}' to GCS: {e}")
+            logging.error(f"Failed to upload file {file_path.name}: {e}")
             return False
 
     def start(self) -> None:
