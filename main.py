@@ -37,12 +37,12 @@ def main() -> None:
     fetcher.fetch_files()
 
     # initialize Mover class
-    # mover = Mover(
-    #     working_dir=Path(os.environ.get("ACI_USER_PATH", "/home/aci/uploads")),
-    #     sent_dir=Path(os.environ.get("SENT_ITEMS_PATH", "/home/aci/sent")),
-    #     path_to_gcs_credentials=str(Path.cwd() / 'gcs.json')
-    # )
-    # mover.start()
+    mover = Mover(
+        working_dir=Path(os.environ.get("ACI_USER_PATH", "/home/aci/uploads")),
+        sent_dir=Path(os.environ.get("SENT_ITEMS_PATH", "/home/aci/sent")),
+        path_to_gcs_credentials=str(Path.cwd() / 'gcs.json')
+    )
+    mover.start()
 
 
 if __name__ == "__main__":
