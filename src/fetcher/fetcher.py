@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 import time
 
@@ -12,6 +13,7 @@ class Fetcher:
             port: int,
             username: str,
             password: str,
+            path_to_key: str,
             local_path: str,
             target_file_type: str = '.csv',
             remote_path: str = "./pub/example") -> None:
@@ -19,14 +21,15 @@ class Fetcher:
         self.port = port
         self.username = username
         self.password = password
-        self.local_path = local_path
+        self.path_to_key = os.path.expanduser(path_to_key)
+        self.local_path = os.path.expanduser(local_path)
         self.target_file_type = target_file_type
         self.remote_path = remote_path
 
         logging.info(
             "Fetcher initialized with the following parameters: "
             f"hostname={hostname}, port={port}, username={username}, "
-            f"local_path={local_path}, "
+            f"local_path={local_path}, path_to_key={path_to_key}, "
             f"target_file_type={target_file_type}, remote_path={remote_path}"
         )
 
@@ -44,12 +47,45 @@ class Fetcher:
             logging.info(
                 f"Attempting to connect to {self.hostname}:{self.port} as {self.username}")
 
+            # Require key-based auth only
+            if not self.path_to_key:
+                logging.fatal(
+                    "SFTP key path not provided; this script requires key-based authentication.")
+                sys.exit(1)
+
+            # Load the private key (supports RSA, DSA, ECDSA, Ed25519, and OpenSSH format)
+            private_key = None
+            key_load_error = None
+
+            # Try loading the key with different key types
+            for key_class in (paramiko.Ed25519Key, paramiko.RSAKey, paramiko.ECDSAKey):
+                try:
+                    private_key = key_class.from_private_key_file(
+                        self.path_to_key,
+                        password=self.password
+                    )
+                    logging.info(f"Successfully loaded {key_class.__name__}")
+                    break
+                except paramiko.SSHException:
+                    continue
+                except Exception as e:
+                    key_load_error = e
+                    continue
+
+            if private_key is None:
+                error_msg = f"Failed to load private key from {self.path_to_key}"
+                if key_load_error:
+                    error_msg += f": {key_load_error}"
+                logging.fatal(error_msg)
+                sys.exit(1)
+
             SSH_Client.connect(
                 hostname=self.hostname,
                 port=self.port,
                 username=self.username,
-                password=self.password,
-                look_for_keys=False
+                pkey=private_key,
+                look_for_keys=False,
+                allow_agent=False
             )
         except Exception as e:
             logging.fatal(f"Failed to connect to {self.hostname}: {e}")
@@ -63,6 +99,9 @@ class Fetcher:
 
             # list target files in the remote directory
             remote_files = sftp_client.listdir(self.remote_path)
+            logging.info(
+                f"Files in remote path '{self.remote_path}': {remote_files}")
+
             target_files = [f for f in remote_files if f.endswith(
                 self.target_file_type)
             ]
