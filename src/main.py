@@ -35,29 +35,31 @@ def main() -> None:
         logging.error(f"Environment file not found at: {env_path}")
         return
 
-    # initialize Fetcher class
-    logging.info("Starting fetcher script...")
-    fetcher = Fetcher(
-        hostname=os.environ.get("SFTP_HOSTNAME", ""),
-        username=os.environ.get("SFTP_USERNAME", ""),
-        port=int(os.environ.get("SFTP_PORT", "")),
-        password=os.environ.get("SFTP_PASSWORD", ""),
-        path_to_key=os.environ.get("SFTP_PATH_TO_KEY", ""),
-        local_path=os.environ.get("SFTP_LOCAL_PATH", "."),
-        target_file_type=os.environ.get("SFTP_TARGET_FILE_TYPE", ".csv"),
-        remote_path=os.environ.get("SFTP_REMOTE_PATH", ".")
-    )
-    fetcher.fetch_files()
+    # initialize Fetcher instance for PRTPE_TEST
+    # logging.info("Starting fetcher for PRTPE_TEST...")
+    # prtpe_test = Fetcher(
+    #     hostname=os.environ.get("SFTP_HOSTNAME", ""),
+    #     username=os.environ.get("SFTP_USERNAME", ""),
+    #     port=int(os.environ.get("SFTP_PORT", "")),
+    #     password=os.environ.get("SFTP_PASSWORD", ""),
+    #     path_to_key=os.environ.get("SFTP_PATH_TO_KEY", ""),
+    #     local_path=os.environ.get("SFTP_LOCAL_PATH", "."),
+    #     target_file_type=os.environ.get("SFTP_TARGET_FILE_TYPE", ".csv"),
+    #     remote_path=os.environ.get("SFTP_REMOTE_PATH", ".")
+    # )
+    # prtpe_test.fetch_files()
 
     # initialize Mover class
-    # logging.info("Starting mover script...")
-    # mover = Mover(
-    #     working_dir=Path(os.environ.get("ACI_USER_PATH", "/home/aci/uploads")),
-    #     sent_dir=Path(os.environ.get("SENT_ITEMS_PATH", "/home/aci/sent")),
-    #     path_to_gcs_credentials=str(
-    #         Path(__file__).parents[1] / "config" / "gcs.json")
-    # )
-    # mover.start()
+    logging.info("Starting mover script...")
+    path_to_gcs_file = Path(__file__).parents[1] / "config" / "gcs.json"
+    mover = Mover(
+        working_dir=Path(os.environ.get("SFTP_LOCAL_PATH", "")),
+        sent_dir=Path(os.environ.get("SENT_ITEMS_PATH", "")),
+        path_to_gcs_credentials=str(path_to_gcs_file)
+    )
+
+    # upload files to GCS and move to 'sent' folder
+    mover.start()
 
 
 if __name__ == "__main__":

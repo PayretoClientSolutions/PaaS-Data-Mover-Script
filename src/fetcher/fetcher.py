@@ -99,9 +99,6 @@ class Fetcher:
 
             # list target files in the remote directory
             remote_files = sftp_client.listdir(self.remote_path)
-            logging.info(
-                f"Files in remote path '{self.remote_path}': {remote_files}")
-
             target_files = [f for f in remote_files if f.endswith(
                 self.target_file_type)
             ]
@@ -159,7 +156,7 @@ class Fetcher:
             SSH_Client.close()
         except Exception as e:
             logging.fatal(f"Failed to open SFTP session: {e}")
-            sys.exit(1)
+            return
         finally:
             # ensure SSH connection is always closed
             if SSH_Client:

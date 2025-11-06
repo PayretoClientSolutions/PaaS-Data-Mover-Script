@@ -23,8 +23,9 @@ class Mover:
         Returns the list of file paths from the 'uploads' directory in the current working directory.
         Exits the script if the directory is empty.
         """
-        incoming_dir = self.working_dir
-        logging.info(f"Looking for files in directory: {incoming_dir}")
+        incoming_dir = self.working_dir.expanduser()
+        logging.info(
+            f"Looking for files in directory: {incoming_dir}")
 
         files_list = [f for f in incoming_dir.iterdir() if f.is_file()]
         if not files_list:
@@ -40,7 +41,7 @@ class Mover:
         The 'sent' directory must exist before moving files.
         """
         logging.info(f"Moving file '{file.name}' to '{self.sent_dir}'.")
-        destination = self.sent_dir / file.name
+        destination = self.sent_dir.expanduser() / file.name
 
         # Todo: add validation to check if file already exists in the destination
         shutil.move(file, destination)
@@ -50,7 +51,7 @@ class Mover:
         Check that the required directory exists, exit if not.
         """
         logging.info(f"Checking if directory exists: {dir}")
-        if not dir.exists():
+        if not dir.expanduser().exists():
             logging.fatal(
                 f"Required directory '{dir}' does not exist. Exiting..."
             )
@@ -64,13 +65,10 @@ class Mover:
         The GCS credentials file renamed to 'gcs.json' must be located in the current working directory.
         """
 
-        # Initialize GCS client.
-        logging.info("Initializing Google Cloud Storage client.")
-        client = storage.Client()
-
-        # Initialize Bucket instance.
-        bucket_name: str = os.getenv("BUCKET_NAME", "aci_raw")
         try:
+            # Initialize GCS client.
+            client = storage.Client()
+            bucket_name: str = os.getenv("BUCKET_NAME", "aci_raw")
             bucket = client.get_bucket(bucket_name)
         except Exception as e:
             logging.fatal(f"Could not access GCS bucket '{bucket_name}': {e}")
@@ -90,17 +88,23 @@ class Mover:
     def start(self) -> None:
         # Fetch the list of files to be processed.
         files_list = self._get_files_list()
+        csv_files = [f for f in files_list if str(f).endswith(".csv")]
+        if not csv_files:
+            logging.fatal(
+                "No CSV files found in the incoming directory. Exiting...")
+            sys.exit(1)
 
         # init google GCS credentials
+        logging.info("Initializing Google Cloud Storage client.")
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.path_to_gcs_credentials
 
         # start timer to measure performance
         start = time.perf_counter()
 
-        # Iterate through each file path for processing.
+        # Iterate through each csv file path for processing.
         # If the upload fails, do not move the file to 'sent' directory.
         uploaded_files_count = 0
-        for file in files_list:
+        for file in csv_files:
             if self._upload_file_to_gcs(file):
                 uploaded_files_count += 1
                 self._move_to_sent_folder(file)
