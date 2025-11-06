@@ -36,18 +36,18 @@ def main() -> None:
         return
 
     # initialize Fetcher instance for PRTPE_TEST
-    # logging.info("Starting fetcher for PRTPE_TEST...")
-    # prtpe_test = Fetcher(
-    #     hostname=os.environ.get("SFTP_HOSTNAME", ""),
-    #     username=os.environ.get("SFTP_USERNAME", ""),
-    #     port=int(os.environ.get("SFTP_PORT", "")),
-    #     password=os.environ.get("SFTP_PASSWORD", ""),
-    #     path_to_key=os.environ.get("SFTP_PATH_TO_KEY", ""),
-    #     local_path=os.environ.get("SFTP_LOCAL_PATH", "."),
-    #     target_file_type=os.environ.get("SFTP_TARGET_FILE_TYPE", ".csv"),
-    #     remote_path=os.environ.get("SFTP_REMOTE_PATH", ".")
-    # )
-    # prtpe_test.fetch_files()
+    logging.info("Starting fetcher for PRTPE_TEST...")
+    prtpe_test = Fetcher(
+        hostname=os.environ.get("SFTP_HOSTNAME", ""),
+        username=os.environ.get("SFTP_USERNAME", ""),
+        port=int(os.environ.get("SFTP_PORT", "")),
+        password=os.environ.get("SFTP_PASSWORD", ""),
+        path_to_key=os.environ.get("SFTP_PATH_TO_KEY", ""),
+        local_path=os.environ.get("SFTP_LOCAL_PATH", "."),
+        target_file_type=os.environ.get("SFTP_TARGET_FILE_TYPE", ".csv"),
+        remote_path=os.environ.get("SFTP_REMOTE_PATH", ".")
+    )
+    prtpe_test.fetch_files()
 
     # initialize Mover class
     logging.info("Starting mover script...")
