@@ -57,13 +57,28 @@ class Fetcher:
             private_key = None
             key_load_error = None
 
-            # Try loading the key with different key types
-            for key_class in (paramiko.Ed25519Key, paramiko.RSAKey, paramiko.ECDSAKey):
+            # ACI's SFTP server only supports Ed25519 and 4096-bit RSA keys
+            for key_class in (paramiko.Ed25519Key, paramiko.RSAKey):
                 try:
                     private_key = key_class.from_private_key_file(
                         self.path_to_key,
                         password=self.password
                     )
+
+                    # If RSA, enforce 4096-bit length
+                    if isinstance(private_key, paramiko.RSAKey):
+                        bits = None
+                        if hasattr(private_key, "get_bits"):
+                            bits = private_key.get_bits()
+
+                        elif hasattr(private_key, "bits"):
+                            bits = getattr(private_key, "bits")
+
+                        if bits != 4096:
+                            logging.fatal(
+                                f"RSA key loaded but key size is {bits}; server requires 4096-bit RSA.")
+                            return
+
                     logging.info(f"Successfully loaded {key_class.__name__}")
                     break
                 except paramiko.SSHException:
