@@ -38,16 +38,62 @@ def main() -> None:
     # initialize Fetcher instance for PRTPE_TEST
     logging.info("Starting fetcher for PRTPE_TEST...")
     prtpe_test = Fetcher(
-        hostname=os.environ.get("SFTP_HOSTNAME", ""),
-        username=os.environ.get("SFTP_USERNAME", ""),
-        port=int(os.environ.get("SFTP_PORT", "")),
-        password=os.environ.get("SFTP_PASSWORD", ""),
-        path_to_key=os.environ.get("SFTP_PATH_TO_KEY", ""),
-        local_path=os.environ.get("SFTP_LOCAL_PATH", "."),
-        target_file_type=os.environ.get("SFTP_TARGET_FILE_TYPE", ".csv"),
-        remote_path=os.environ.get("SFTP_REMOTE_PATH", ".")
+        hostname=os.environ.get("SFTP_HOSTNAME_PRTPE_TEST", ""),
+        username=os.environ.get("SFTP_USERNAME_PRTPE_TEST", ""),
+        port=int(os.environ.get("SFTP_PORT_PRTPE_TEST", "")),
+        password=os.environ.get("SFTP_PASSWORD_PRTPE_TEST", ""),
+        path_to_key=os.environ.get("SFTP_PATH_TO_KEY_PRTPE_TEST", ""),
+        local_path=os.environ.get("SFTP_LOCAL_PATH_PRTPE_TEST", "."),
+        target_file_type=os.environ.get(
+            "SFTP_TARGET_FILE_TYPE_PRTPE_TEST", ".csv"),
+        remote_path=os.environ.get("SFTP_REMOTE_PATH_PRTPE_TEST", ".")
     )
     prtpe_test.fetch_files()
+
+    # initialize Fetcher instance for PRTSO_TEST
+    # logging.info("Starting fetcher for PRTSO_TEST...")
+    # prtso_test = Fetcher(
+    #     hostname=os.environ.get("SFTP_HOSTNAME_PRTSO_TEST", ""),
+    #     username=os.environ.get("SFTP_USERNAME_PRTSO_TEST", ""),
+    #     port=int(os.environ.get("SFTP_PORT_PRTSO_TEST", "")),
+    #     password=os.environ.get("SFTP_PASSWORD_PRTSO_TEST", ""),
+    #     path_to_key=os.environ.get("SFTP_PATH_TO_KEY_PRTSO_TEST", ""),
+    #     local_path=os.environ.get("SFTP_LOCAL_PATH_PRTSO_TEST", "."),
+    #     target_file_type=os.environ.get(
+    #         "SFTP_TARGET_FILE_TYPE_PRTSO_TEST", ".csv"),
+    #     remote_path=os.environ.get("SFTP_REMOTE_PATH_PRTSO_TEST", ".")
+    # )
+    # prtso_test.fetch_files()
+
+    # initialize Fetcher instance for BIGE_TEST
+    # logging.info("Starting fetcher for BIGE_TEST...")
+    # bige_test = Fetcher(
+    #     hostname=os.environ.get("SFTP_HOSTNAME_BIGE_TEST", ""),
+    #     username=os.environ.get("SFTP_USERNAME_BIGE_TEST", ""),
+    #     port=int(os.environ.get("SFTP_PORT_BIGE_TEST", "")),
+    #     password=os.environ.get("SFTP_PASSWORD_BIGE_TEST", ""),
+    #     path_to_key=os.environ.get("SFTP_PATH_TO_KEY_BIGE_TEST", ""),
+    #     local_path=os.environ.get("SFTP_LOCAL_PATH_BIGE_TEST", "."),
+    #     target_file_type=os.environ.get(
+    #         "SFTP_TARGET_FILE_TYPE_BIGE_TEST", ".csv"),
+    #     remote_path=os.environ.get("SFTP_REMOTE_PATH_BIGE_TEST", ".")
+    # )
+    # bige_test.fetch_files()
+
+    # initialize Fetcher instance for SOLID_TEST
+    # logging.info("Starting fetcher for SOLID_TEST...")
+    # solid_test = Fetcher(
+    #     hostname=os.environ.get("SFTP_HOSTNAME_SOLID_TEST", ""),
+    #     username=os.environ.get("SFTP_USERNAME_SOLID_TEST", ""),
+    #     port=int(os.environ.get("SFTP_PORT_SOLID_TEST", "")),
+    #     password=os.environ.get("SFTP_PASSWORD_SOLID_TEST", ""),
+    #     path_to_key=os.environ.get("SFTP_PATH_TO_KEY_SOLID_TEST", ""),
+    #     local_path=os.environ.get("SFTP_LOCAL_PATH_SOLID_TEST", "."),
+    #     target_file_type=os.environ.get(
+    #         "SFTP_TARGET_FILE_TYPE_SOLID_TEST", ".csv"),
+    #     remote_path=os.environ.get("SFTP_REMOTE_PATH_SOLID_TEST", ".")
+    # )
+    # solid_test.fetch_files()
 
     # initialize Mover class
     logging.info("Starting mover script...")
