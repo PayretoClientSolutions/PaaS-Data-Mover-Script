@@ -67,11 +67,7 @@ def main() -> None:
             port=int(secrets_dict.get("SFTP_PORT_PRTPE_TEST", "22")),
             password=secrets_dict.get("SFTP_PASSWORD_PRTPE_TEST", ""),
             path_to_key=secrets_dict.get("SFTP_PATH_TO_KEY_PRTPE_TEST", ""),
-            local_path=secrets_dict.get("SFTP_LOCAL_PATH_PRTPE_TEST", "."),
-            target_file_type=secrets_dict.get(
-                "SFTP_TARGET_FILE_TYPE_PRTPE_TEST", ".csv"),
-            remote_path=secrets_dict.get(
-                "SFTP_REMOTE_PATH_PRTPE_TEST", "/REPORTS")
+            local_path=secrets_dict.get("SFTP_LOCAL_PATH_PRTPE_TEST", ".")
         )
 
         # initialize Fetcher instance for PRTPE_TEST
@@ -98,11 +94,7 @@ def main() -> None:
             port=int(secrets_dict.get("SFTP_PORT_BIGE_TEST", "22")),
             password=secrets_dict.get("SFTP_PASSWORD_BIGE_TEST", ""),
             path_to_key=secrets_dict.get("SFTP_PATH_TO_KEY_BIGE_TEST", ""),
-            local_path=secrets_dict.get("SFTP_LOCAL_PATH_BIGE_TEST", "."),
-            target_file_type=secrets_dict.get(
-                "SFTP_TARGET_FILE_TYPE_BIGE_TEST", ".csv"),
-            remote_path=secrets_dict.get(
-                "SFTP_REMOTE_PATH_BIGE_TEST", "/REPORTS")
+            local_path=secrets_dict.get("SFTP_LOCAL_PATH_BIGE_TEST", ".")
         )
 
         # # initialize Fetcher instance for PRTPE_TEST
