@@ -7,12 +7,14 @@ from pathlib import Path
 
 from google.cloud import storage
 
+from models import MoverConfig
+
 
 class Mover:
-    def __init__(self, working_dir: Path, sent_dir: Path, path_to_gcs_credentials: str) -> None:
-        self.working_dir = working_dir
-        self.sent_dir = sent_dir
-        self.path_to_gcs_credentials = path_to_gcs_credentials
+    def __init__(self, config: MoverConfig) -> None:
+        self.working_dir = config.working_dir
+        self.sent_dir = config.sent_dir
+        self.path_to_gcs_credentials = config.path_to_gcs_credentials
 
         # validate required directories exist
         self._validate_directories(self.working_dir)

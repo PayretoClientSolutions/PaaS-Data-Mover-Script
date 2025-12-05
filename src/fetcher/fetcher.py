@@ -5,32 +5,25 @@ import time
 
 import paramiko
 
+from models import SFTPConfig
+
 
 class Fetcher:
-    def __init__(
-            self,
-            hostname: str,
-            port: int,
-            username: str,
-            password: str,
-            path_to_key: str,
-            local_path: str,
-            target_file_type: str = '.csv',
-            remote_path: str = "./pub/example") -> None:
-        self.hostname = hostname
-        self.port = port
-        self.username = username
-        self.password = password
-        self.path_to_key = os.path.expanduser(path_to_key)
-        self.local_path = os.path.expanduser(local_path)
-        self.target_file_type = target_file_type
-        self.remote_path = remote_path
+    def __init__(self, config: SFTPConfig) -> None:
+        self.hostname = config.hostname
+        self.port = config.port
+        self.username = config.username
+        self.password = config.password
+        self.path_to_key = os.path.expanduser(config.path_to_key)
+        self.local_path = os.path.expanduser(config.local_path)
+        self.target_file_type = config.target_file_type
+        self.remote_path = config.remote_path
 
         logging.info(
             "Fetcher initialized with the following parameters: "
-            f"hostname={hostname}, port={port}, username={username}, "
-            f"local_path={local_path}, path_to_key={path_to_key}, "
-            f"target_file_type={target_file_type}, remote_path={remote_path}"
+            f"hostname={self.hostname}, port={self.port}, username={self.username}, "
+            f"local_path={self.local_path}, path_to_key={self.path_to_key}, "
+            f"target_file_type={self.target_file_type}, remote_path={self.remote_path}"
         )
 
     def fetch_files(self) -> None:

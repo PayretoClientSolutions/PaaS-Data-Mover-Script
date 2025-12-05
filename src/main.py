@@ -3,8 +3,11 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from infisical_sdk import InfisicalSDKClient
 
 from fetcher import Fetcher
+from models import SFTPConfig
+from models.models import MoverConfig
 from mover import Mover
 
 
@@ -29,82 +32,62 @@ def main() -> None:
     # read environment variables from .env file
     env_path = Path(__file__).resolve().parents[1] / "config" / ".env"
     logging.info(f"Loading environment variables from: {env_path}")
-    load_dotenv(env_path)
-
     if not env_path.exists():
         logging.error(f"Environment file not found at: {env_path}")
         return
 
+    load_dotenv(env_path)
+
+    try:
+        logging.info("Fetching secrets from Infisical...")
+
+        client = InfisicalSDKClient(host="https://eu.infisical.com")
+        client.auth.token_auth.login(
+            token=os.environ.get("INFISCAL_TOKEN", ""))
+
+        secrets = client.secrets.list_secrets(
+            project_id="3ed6ea7a-049a-4453-8510-acb86fe0270a",
+            project_slug="paa-s-sftp-htwm",
+            environment_slug=os.environ.get("INFISCAL_ENVIRONMENT", "dev"),
+            secret_path="/"
+        )
+
+        # convert secrets to a dictionary
+        secrets_dict = {
+            secret.secretKey: secret.secretValue for secret in secrets.secrets}
+
+        # map to SFTPConfig dataclass
+        prtpe_test_sftp_config = SFTPConfig(
+            hostname=secrets_dict.get("SFTP_HOSTNAME_PRTPE_TEST", ""),
+            username=secrets_dict.get("SFTP_USERNAME_PRTPE_TEST", ""),
+            port=int(secrets_dict.get("SFTP_PORT_PRTPE_TEST", "22")),
+            password=secrets_dict.get("SFTP_PASSWORD_PRTPE_TEST", ""),
+            path_to_key=secrets_dict.get("SFTP_PATH_TO_KEY_PRTPE_TEST", ""),
+            local_path=secrets_dict.get("SFTP_LOCAL_PATH_PRTPE_TEST", "."),
+            target_file_type=secrets_dict.get(
+                "SFTP_TARGET_FILE_TYPE_PRTPE_TEST", ".csv"),
+            remote_path=secrets_dict.get(
+                "SFTP_REMOTE_PATH_PRTPE_TEST", "/REPORTS")
+        )
+
+    except Exception as e:
+        logging.error(f"Error fetching secrets from Infisical: {e}")
+        return
+
     # initialize Fetcher instance for PRTPE_TEST
     logging.info("Starting fetcher for PRTPE_TEST...")
-    prtpe_test = Fetcher(
-        hostname=os.environ.get("SFTP_HOSTNAME_PRTPE_TEST", ""),
-        username=os.environ.get("SFTP_USERNAME_PRTPE_TEST", ""),
-        port=int(os.environ.get("SFTP_PORT_PRTPE_TEST", "")),
-        password=os.environ.get("SFTP_PASSWORD_PRTPE_TEST", ""),
-        path_to_key=os.environ.get("SFTP_PATH_TO_KEY_PRTPE_TEST", ""),
-        local_path=os.environ.get("SFTP_LOCAL_PATH_PRTPE_TEST", "."),
-        target_file_type=os.environ.get(
-            "SFTP_TARGET_FILE_TYPE_PRTPE_TEST", ".csv"),
-        remote_path=os.environ.get("SFTP_REMOTE_PATH_PRTPE_TEST", ".")
-    )
+    prtpe_test = Fetcher(config=prtpe_test_sftp_config)
     prtpe_test.fetch_files()
 
-    # initialize Fetcher instance for PRTSO_TEST
-    # logging.info("Starting fetcher for PRTSO_TEST...")
-    # prtso_test = Fetcher(
-    #     hostname=os.environ.get("SFTP_HOSTNAME_PRTSO_TEST", ""),
-    #     username=os.environ.get("SFTP_USERNAME_PRTSO_TEST", ""),
-    #     port=int(os.environ.get("SFTP_PORT_PRTSO_TEST", "")),
-    #     password=os.environ.get("SFTP_PASSWORD_PRTSO_TEST", ""),
-    #     path_to_key=os.environ.get("SFTP_PATH_TO_KEY_PRTSO_TEST", ""),
-    #     local_path=os.environ.get("SFTP_LOCAL_PATH_PRTSO_TEST", "."),
-    #     target_file_type=os.environ.get(
-    #         "SFTP_TARGET_FILE_TYPE_PRTSO_TEST", ".csv"),
-    #     remote_path=os.environ.get("SFTP_REMOTE_PATH_PRTSO_TEST", ".")
-    # )
-    # prtso_test.fetch_files()
-
-    # initialize Fetcher instance for BIGE_TEST
-    # logging.info("Starting fetcher for BIGE_TEST...")
-    # bige_test = Fetcher(
-    #     hostname=os.environ.get("SFTP_HOSTNAME_BIGE_TEST", ""),
-    #     username=os.environ.get("SFTP_USERNAME_BIGE_TEST", ""),
-    #     port=int(os.environ.get("SFTP_PORT_BIGE_TEST", "")),
-    #     password=os.environ.get("SFTP_PASSWORD_BIGE_TEST", ""),
-    #     path_to_key=os.environ.get("SFTP_PATH_TO_KEY_BIGE_TEST", ""),
-    #     local_path=os.environ.get("SFTP_LOCAL_PATH_BIGE_TEST", "."),
-    #     target_file_type=os.environ.get(
-    #         "SFTP_TARGET_FILE_TYPE_BIGE_TEST", ".csv"),
-    #     remote_path=os.environ.get("SFTP_REMOTE_PATH_BIGE_TEST", ".")
-    # )
-    # bige_test.fetch_files()
-
-    # initialize Fetcher instance for SOLID_TEST
-    # logging.info("Starting fetcher for SOLID_TEST...")
-    # solid_test = Fetcher(
-    #     hostname=os.environ.get("SFTP_HOSTNAME_SOLID_TEST", ""),
-    #     username=os.environ.get("SFTP_USERNAME_SOLID_TEST", ""),
-    #     port=int(os.environ.get("SFTP_PORT_SOLID_TEST", "")),
-    #     password=os.environ.get("SFTP_PASSWORD_SOLID_TEST", ""),
-    #     path_to_key=os.environ.get("SFTP_PATH_TO_KEY_SOLID_TEST", ""),
-    #     local_path=os.environ.get("SFTP_LOCAL_PATH_SOLID_TEST", "."),
-    #     target_file_type=os.environ.get(
-    #         "SFTP_TARGET_FILE_TYPE_SOLID_TEST", ".csv"),
-    #     remote_path=os.environ.get("SFTP_REMOTE_PATH_SOLID_TEST", ".")
-    # )
-    # solid_test.fetch_files()
-
     # initialize Mover class
-    logging.info("Starting mover script...")
+    logging.info("Moving items from PRTPE_TEST...")
     path_to_gcs_file = Path(__file__).parents[1] / "config" / "gcs.json"
-    mover = Mover(
-        working_dir=Path(os.environ.get("SFTP_LOCAL_PATH", "")),
-        sent_dir=Path(os.environ.get("SENT_ITEMS_PATH", "")),
+    mover_config = MoverConfig(
+        working_dir=Path(prtpe_test_sftp_config.local_path),
+        sent_dir=Path(secrets_dict.get("SENT_ITEMS_PATH_PRTPE_TEST", "")),
         path_to_gcs_credentials=str(path_to_gcs_file)
     )
-
-    # upload files to GCS and move to 'sent' folder
+    mover = Mover(mover_config)
     mover.start()
 
 
