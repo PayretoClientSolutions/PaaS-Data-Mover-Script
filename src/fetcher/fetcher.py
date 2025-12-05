@@ -19,6 +19,13 @@ class Fetcher:
         self.target_file_type = config.target_file_type
         self.remote_path = config.remote_path
 
+        logging.info(f"Checking if local_path exists: {self.local_path}")
+        if not os.path.exists(self.local_path):
+            logging.fatal(
+                f"Required directory '{self.local_path}' does not exist. Exiting..."
+            )
+            sys.exit(1)
+
         logging.info(
             "Fetcher initialized with the following parameters: "
             f"hostname={self.hostname}, port={self.port}, username={self.username}, "
