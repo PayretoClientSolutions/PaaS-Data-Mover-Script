@@ -52,6 +52,8 @@ def main() -> None:
             secret_path="/"
         )
 
+        path_to_gcs_file = Path(__file__).parents[1] / "config" / "gcs.json"
+
         # convert secrets to a dictionary
         secrets_dict = {
             secret.secretKey: secret.secretValue for secret in secrets.secrets}
@@ -77,7 +79,6 @@ def main() -> None:
 
         # initialize Mover class
         logging.info("Moving items from PRTPE_TEST...")
-        path_to_gcs_file = Path(__file__).parents[1] / "config" / "gcs.json"
         mover_config = MoverConfig(
             working_dir=Path(prtpe_test_sftp_config.local_path),
             sent_dir=Path(secrets_dict.get("SENT_ITEMS_PATH_PRTPE_TEST", "")),
