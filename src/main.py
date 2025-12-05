@@ -70,25 +70,25 @@ def main() -> None:
                 "SFTP_REMOTE_PATH_PRTPE_TEST", "/REPORTS")
         )
 
+        # initialize Fetcher instance for PRTPE_TEST
+        logging.info("Starting fetcher for PRTPE_TEST...")
+        prtpe_test = Fetcher(config=prtpe_test_sftp_config)
+        prtpe_test.fetch_files()
+
+        # initialize Mover class
+        logging.info("Moving items from PRTPE_TEST...")
+        path_to_gcs_file = Path(__file__).parents[1] / "config" / "gcs.json"
+        mover_config = MoverConfig(
+            working_dir=Path(prtpe_test_sftp_config.local_path),
+            sent_dir=Path(secrets_dict.get("SENT_ITEMS_PATH_PRTPE_TEST", "")),
+            path_to_gcs_credentials=str(path_to_gcs_file)
+        )
+        mover = Mover(mover_config)
+        mover.start()
+
     except Exception as e:
         logging.error(f"Error fetching secrets from Infisical: {e}")
         return
-
-    # initialize Fetcher instance for PRTPE_TEST
-    logging.info("Starting fetcher for PRTPE_TEST...")
-    prtpe_test = Fetcher(config=prtpe_test_sftp_config)
-    prtpe_test.fetch_files()
-
-    # initialize Mover class
-    logging.info("Moving items from PRTPE_TEST...")
-    path_to_gcs_file = Path(__file__).parents[1] / "config" / "gcs.json"
-    mover_config = MoverConfig(
-        working_dir=Path(prtpe_test_sftp_config.local_path),
-        sent_dir=Path(secrets_dict.get("SENT_ITEMS_PATH_PRTPE_TEST", "")),
-        path_to_gcs_credentials=str(path_to_gcs_file)
-    )
-    mover = Mover(mover_config)
-    mover.start()
 
 
 if __name__ == "__main__":
