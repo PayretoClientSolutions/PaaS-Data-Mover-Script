@@ -26,13 +26,12 @@ class Mover:
         Returns the list of file paths from the 'uploads' directory in the current working directory.
         Exits the script if the directory is empty.
         """
-        incoming_dir = self.working_dir.expanduser()
-        logging.info(
-            f"Looking for files in directory: {incoming_dir}")
+        dir = self.working_dir.expanduser()
+        logging.info(f"Looking for files in directory: {dir}")
 
-        files_list = [f for f in incoming_dir.iterdir() if f.is_file()]
+        files_list = [f for f in dir.iterdir() if f.is_file()]
         if not files_list:
-            logging.fatal("Incoming directory is empty.")
+            logging.warning(f"Directory {dir} is empty!")
             return []
 
         logging.info(f"Found {len(files_list)} file(s) in incoming directory.")
@@ -92,13 +91,12 @@ class Mover:
         # Fetch the list of files to be processed.
         files_list = self._get_files_list()
         if not files_list:
-            logging.fatal("No files to process")
+            logging.warning("No files to process, exiting MOVER.")
             return
 
         csv_files = [f for f in files_list if str(f).endswith(".csv")]
         if not csv_files:
-            logging.fatal(
-                "No CSV files found in the incoming directory")
+            logging.warning("No CSV files found in the incoming directory")
             return
 
         # init google GCS credentials
