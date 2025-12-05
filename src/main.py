@@ -38,88 +38,59 @@ def main() -> None:
 
     load_dotenv(env_path)
 
+    # init path to gcs credentials file
+    path_to_gcs_file = Path(__file__).parents[1] / "config" / "gcs.json"
+
     try:
         logging.info("Fetching secrets from Infisical...")
+        client = InfisicalSDKClient(
+            host="https://eu.infisical.com",
+            token=os.environ.get("INFISCAL_TOKEN", "")
+        )
 
-        client = InfisicalSDKClient(host="https://eu.infisical.com")
-        client.auth.token_auth.login(
-            token=os.environ.get("INFISCAL_TOKEN", ""))
-
-        secrets = client.secrets.list_secrets(
+        # fetch secrets for PRTPE_TEST
+        sc_prtpe_test = client.secrets.list_secrets(
             project_id="3ed6ea7a-049a-4453-8510-acb86fe0270a",
             project_slug="paa-s-sftp-htwm",
             environment_slug=os.environ.get("INFISCAL_ENVIRONMENT", "dev"),
-            secret_path="/"
-        )
+            secret_path="/prtpe_test"
+        ).secrets
 
-        path_to_gcs_file = Path(__file__).parents[1] / "config" / "gcs.json"
+        sc_dct_prtpe_test = {
+            sc.secretKey: sc.secretValue for sc in sc_prtpe_test}
 
-        # convert secrets to a dictionary
-        secrets_dict = {
-            secret.secretKey: secret.secretValue for secret in secrets.secrets}
-
-        # set GCS bucket name
-        bucket_name = secrets_dict.get("BUCKET_NAME", "aci_raw")
-
-        ### PRTPE TEST ###
-
-        # map to SFTPConfig dataclass
-        prtpe_test_sftp_config = SFTPConfig(
-            hostname=secrets_dict.get("SFTP_HOSTNAME_PRTPE_TEST", ""),
-            username=secrets_dict.get("SFTP_USERNAME_PRTPE_TEST", ""),
-            port=int(secrets_dict.get("SFTP_PORT_PRTPE_TEST", "22")),
-            password=secrets_dict.get("SFTP_PASSWORD_PRTPE_TEST", ""),
-            path_to_key=secrets_dict.get("SFTP_PATH_TO_KEY_PRTPE_TEST", ""),
-            local_path=secrets_dict.get("SFTP_LOCAL_PATH_PRTPE_TEST", ".")
-        )
-
-        # initialize Fetcher instance for PRTPE_TEST
-        logging.info("Starting FETCHER for PRTPE_TEST...")
-        prtpe_test = Fetcher(config=prtpe_test_sftp_config)
-        prtpe_test.fetch_files()
-
-        # initialize Mover class
-        logging.info("Starting MOVER for PRTPE_TEST...")
-        mover_config = MoverConfig(
-            working_dir=Path(prtpe_test_sftp_config.local_path),
-            sent_dir=Path(secrets_dict.get("SENT_ITEMS_PATH_PRTPE_TEST", "")),
-            path_to_gcs_credentials=str(path_to_gcs_file),
-            bucket_name=bucket_name
-        )
-        mover = Mover(mover_config)
-        mover.start()
-
-        ### BIGE_TEST ###
-
-        # map to SFTPConfig dataclass
-        bige_test_sftp_config = SFTPConfig(
-            hostname=secrets_dict.get("SFTP_HOSTNAME_BIGE_TEST", ""),
-            username=secrets_dict.get("SFTP_USERNAME_BIGE_TEST", ""),
-            port=int(secrets_dict.get("SFTP_PORT_BIGE_TEST", "22")),
-            password=secrets_dict.get("SFTP_PASSWORD_BIGE_TEST", ""),
-            path_to_key=secrets_dict.get("SFTP_PATH_TO_KEY_BIGE_TEST", ""),
-            local_path=secrets_dict.get("SFTP_LOCAL_PATH_BIGE_TEST", ".")
-        )
-
-        # # initialize Fetcher instance for PRTPE_TEST
-        logging.info("Starting FETCHER for BIGE_TEST...")
-        bige_test = Fetcher(config=bige_test_sftp_config)
-        bige_test.fetch_files()
-
-        # initialize Mover class
-        logging.info("Starting MOVER for BIGE_TEST...")
-        mover_config = MoverConfig(
-            working_dir=Path(bige_test_sftp_config.local_path),
-            sent_dir=Path(secrets_dict.get("SENT_ITEMS_PATH_BIGE_TEST", "")),
-            path_to_gcs_credentials=str(path_to_gcs_file),
-            bucket_name=bucket_name
-        )
-        mover = Mover(mover_config)
-        mover.start()
+        bn_prtpe_test = sc_dct_prtpe_test.get("BUCKET_NAME", "")
+        sd_prtpe_test = sc_dct_prtpe_test.get("SENT_ITEMS_PATH", "")
 
     except Exception as e:
         logging.error(f"Error fetching secrets from Infisical: {e}")
         return
+
+    ### PRTPE TEST ###
+
+    # map to SFTPConfig dataclass
+    sftp_conf_prtpe_test = SFTPConfig(
+        hostname=sc_dct_prtpe_test.get("HOSTNAME", ""),
+        username=sc_dct_prtpe_test.get("USERNAME", ""),
+        port=int(sc_dct_prtpe_test.get("PORT", "22")),
+        password=sc_dct_prtpe_test.get("PASSWORD", ""),
+        path_to_key=sc_dct_prtpe_test.get("PATH_TO_KEY", ""),
+        local_path=sc_dct_prtpe_test.get("LOCAL_PATH", ".")
+    )
+
+    # initialize Fetcher instance for PRTPE_TEST
+    logging.info("Starting FETCHER for PRTPE_TEST...")
+    Fetcher(config=sftp_conf_prtpe_test).fetch_files()
+
+    # initialize Mover class
+    logging.info("Starting MOVER for PRTPE_TEST...")
+    mover_config = MoverConfig(
+        working_dir=Path(sftp_conf_prtpe_test.local_path),
+        sent_dir=Path(sd_prtpe_test),
+        path_to_gcs_credentials=str(path_to_gcs_file),
+        bucket_name=bn_prtpe_test
+    )
+    Mover(mover_config).start()
 
 
 if __name__ == "__main__":
