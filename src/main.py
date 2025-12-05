@@ -58,6 +58,9 @@ def main() -> None:
         secrets_dict = {
             secret.secretKey: secret.secretValue for secret in secrets.secrets}
 
+        # set GCS bucket name
+        bucket_name = secrets_dict.get("BUCKET_NAME", "aci_raw")
+
         ### PRTPE TEST ###
 
         # map to SFTPConfig dataclass
@@ -80,7 +83,8 @@ def main() -> None:
         mover_config = MoverConfig(
             working_dir=Path(prtpe_test_sftp_config.local_path),
             sent_dir=Path(secrets_dict.get("SENT_ITEMS_PATH_PRTPE_TEST", "")),
-            path_to_gcs_credentials=str(path_to_gcs_file)
+            path_to_gcs_credentials=str(path_to_gcs_file),
+            bucket_name=bucket_name
         )
         mover = Mover(mover_config)
         mover.start()
@@ -107,7 +111,8 @@ def main() -> None:
         mover_config = MoverConfig(
             working_dir=Path(bige_test_sftp_config.local_path),
             sent_dir=Path(secrets_dict.get("SENT_ITEMS_PATH_BIGE_TEST", "")),
-            path_to_gcs_credentials=str(path_to_gcs_file)
+            path_to_gcs_credentials=str(path_to_gcs_file),
+            bucket_name=bucket_name
         )
         mover = Mover(mover_config)
         mover.start()

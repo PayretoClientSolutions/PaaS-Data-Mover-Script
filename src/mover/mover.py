@@ -15,6 +15,7 @@ class Mover:
         self.working_dir = config.working_dir
         self.sent_dir = config.sent_dir
         self.path_to_gcs_credentials = config.path_to_gcs_credentials
+        self.bucket_name = config.bucket_name
 
         # validate required directories exist
         self._validate_directories(self.working_dir)
@@ -31,8 +32,8 @@ class Mover:
 
         files_list = [f for f in incoming_dir.iterdir() if f.is_file()]
         if not files_list:
-            logging.fatal("Incoming directory is empty. Exiting...")
-            sys.exit(1)
+            logging.fatal("Incoming directory is empty.")
+            return []
 
         logging.info(f"Found {len(files_list)} file(s) in incoming directory.")
         return files_list
@@ -70,7 +71,7 @@ class Mover:
         try:
             # Initialize GCS client.
             client = storage.Client()
-            bucket_name: str = os.getenv("BUCKET_NAME", "aci_raw")
+            bucket_name: str = self.bucket_name
             bucket = client.get_bucket(bucket_name)
         except Exception as e:
             logging.fatal(f"Could not access GCS bucket '{bucket_name}': {e}")
@@ -90,11 +91,15 @@ class Mover:
     def start(self) -> None:
         # Fetch the list of files to be processed.
         files_list = self._get_files_list()
+        if not files_list:
+            logging.fatal("No files to process")
+            return
+
         csv_files = [f for f in files_list if str(f).endswith(".csv")]
         if not csv_files:
             logging.fatal(
-                "No CSV files found in the incoming directory. Exiting...")
-            sys.exit(1)
+                "No CSV files found in the incoming directory")
+            return
 
         # init google GCS credentials
         logging.info("Initializing Google Cloud Storage client.")
