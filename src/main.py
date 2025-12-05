@@ -74,12 +74,12 @@ def main() -> None:
         )
 
         # initialize Fetcher instance for PRTPE_TEST
-        logging.info("Starting fetcher for PRTPE_TEST...")
+        logging.info("Starting FETCHER for PRTPE_TEST...")
         prtpe_test = Fetcher(config=prtpe_test_sftp_config)
         prtpe_test.fetch_files()
 
         # initialize Mover class
-        logging.info("Moving items from PRTPE_TEST...")
+        logging.info("Starting MOVER for PRTPE_TEST...")
         mover_config = MoverConfig(
             working_dir=Path(prtpe_test_sftp_config.local_path),
             sent_dir=Path(secrets_dict.get("SENT_ITEMS_PATH_PRTPE_TEST", "")),
@@ -102,12 +102,12 @@ def main() -> None:
         )
 
         # # initialize Fetcher instance for PRTPE_TEST
-        logging.info("Starting fetcher for BIGE_TEST...")
+        logging.info("Starting FETCHER for BIGE_TEST...")
         bige_test = Fetcher(config=bige_test_sftp_config)
         bige_test.fetch_files()
 
         # initialize Mover class
-        logging.info("Moving items from BIGE_TEST...")
+        logging.info("Starting MOVER for BIGE_TEST...")
         mover_config = MoverConfig(
             working_dir=Path(bige_test_sftp_config.local_path),
             sent_dir=Path(secrets_dict.get("SENT_ITEMS_PATH_BIGE_TEST", "")),
