@@ -58,6 +58,8 @@ def main() -> None:
         secrets_dict = {
             secret.secretKey: secret.secretValue for secret in secrets.secrets}
 
+        ### PRTPE TEST ###
+
         # map to SFTPConfig dataclass
         prtpe_test_sftp_config = SFTPConfig(
             hostname=secrets_dict.get("SFTP_HOSTNAME_PRTPE_TEST", ""),
@@ -82,6 +84,37 @@ def main() -> None:
         mover_config = MoverConfig(
             working_dir=Path(prtpe_test_sftp_config.local_path),
             sent_dir=Path(secrets_dict.get("SENT_ITEMS_PATH_PRTPE_TEST", "")),
+            path_to_gcs_credentials=str(path_to_gcs_file)
+        )
+        mover = Mover(mover_config)
+        mover.start()
+
+        ### BIGE_TEST ###
+
+        # map to SFTPConfig dataclass
+        bige_test_sftp_config = SFTPConfig(
+            hostname=secrets_dict.get("SFTP_HOSTNAME_BIGE_TEST", ""),
+            username=secrets_dict.get("SFTP_USERNAME_BIGE_TEST", ""),
+            port=int(secrets_dict.get("SFTP_PORT_BIGE_TEST", "22")),
+            password=secrets_dict.get("SFTP_PASSWORD_BIGE_TEST", ""),
+            path_to_key=secrets_dict.get("SFTP_PATH_TO_KEY_BIGE_TEST", ""),
+            local_path=secrets_dict.get("SFTP_LOCAL_PATH_BIGE_TEST", "."),
+            target_file_type=secrets_dict.get(
+                "SFTP_TARGET_FILE_TYPE_BIGE_TEST", ".csv"),
+            remote_path=secrets_dict.get(
+                "SFTP_REMOTE_PATH_BIGE_TEST", "/REPORTS")
+        )
+
+        # # initialize Fetcher instance for PRTPE_TEST
+        logging.info("Starting fetcher for BIGE_TEST...")
+        bige_test = Fetcher(config=bige_test_sftp_config)
+        bige_test.fetch_files()
+
+        # initialize Mover class
+        logging.info("Moving items from BIGE_TEST...")
+        mover_config = MoverConfig(
+            working_dir=Path(bige_test_sftp_config.local_path),
+            sent_dir=Path(secrets_dict.get("SENT_ITEMS_PATH_BIGE_TEST", "")),
             path_to_gcs_credentials=str(path_to_gcs_file)
         )
         mover = Mover(mover_config)
