@@ -70,10 +70,9 @@ class Mover:
         try:
             # Initialize GCS client.
             client = storage.Client()
-            bucket_name: str = self.bucket_name
-            bucket = client.get_bucket(bucket_name)
+            bucket = client.get_bucket(self.bucket_name)
         except Exception as e:
-            logging.fatal(f"Could not access GCS bucket '{bucket_name}': {e}")
+            logging.fatal(f"Could not access GCS bucket '{self.bucket_name}': {e}")
             sys.exit(1)
 
         # Upload the file.
