@@ -31,6 +31,7 @@ def fetch_and_move(
         path_to_gcs_file: Path,
 ) -> None:
     """
+    Fetches files via SFTP and moves them to GCS.
     Parameters:
         bip_name (str): Name of the BIP
         sc_dct (dict[str, str]): Secrets dictionary
