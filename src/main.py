@@ -67,7 +67,6 @@ def main() -> None:
 
     # read environment variables from .env file
     env_path = Path(__file__).resolve().parents[1] / "config" / ".env"
-    logging.info(f"Loading environment variables from: {env_path}")
     if not env_path.exists():
         logging.error(f"Environment file not found at: {env_path}")
         return
