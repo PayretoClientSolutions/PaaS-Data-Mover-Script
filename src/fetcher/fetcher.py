@@ -45,12 +45,14 @@ class Fetcher:
         # attempt connection
         try:
             logging.info(
-                f"Attempting to connect to {self.hostname}:{self.port} as {self.username}")
+                f"Attempting to connect to {self.hostname}:{self.port} as {self.username}"
+            )
 
             # Require key-based auth only
             if not self.path_to_key:
                 logging.fatal(
-                    "SFTP key path not provided; this script requires key-based authentication.")
+                    "SFTP key path not provided; this script requires key-based authentication."
+                )
                 sys.exit(1)
 
             # Load the private key (supports RSA, DSA, ECDSA, Ed25519, and OpenSSH format)
@@ -61,8 +63,7 @@ class Fetcher:
             for key_class in (paramiko.Ed25519Key, paramiko.RSAKey):
                 try:
                     private_key = key_class.from_private_key_file(
-                        self.path_to_key,
-                        password=self.password
+                        self.path_to_key, password=self.password
                     )
 
                     # If RSA, enforce 4096-bit length
@@ -76,12 +77,14 @@ class Fetcher:
 
                         if bits != 4096:
                             logging.fatal(
-                                f"RSA key loaded but key size is {bits}; server requires 4096-bit RSA.")
+                                f"RSA key loaded but key size is {bits}; server requires 4096-bit RSA."
+                            )
                             return
 
                     logging.info(f"Successfully loaded {key_class.__name__}")
                     break
-                except paramiko.SSHException:
+                except paramiko.SSHException as e:
+                    logging.error(f"SSHException occurred: {e}")
                     continue
                 except Exception as e:
                     key_load_error = e
@@ -100,7 +103,7 @@ class Fetcher:
                 username=self.username,
                 pkey=private_key,
                 look_for_keys=False,
-                allow_agent=False
+                allow_agent=False,
             )
         except Exception as e:
             logging.fatal(f"Failed to connect to {self.hostname}: {e}")
@@ -114,18 +117,20 @@ class Fetcher:
 
             # list target files in the remote directory
             remote_files = sftp_client.listdir(self.remote_path)
-            target_files = [f for f in remote_files if f.endswith(
-                self.target_file_type)
+            target_files = [
+                f for f in remote_files if f.endswith(self.target_file_type)
             ]
 
             # exit if no files found
             if not target_files:
                 logging.info(
-                    f"No {self.target_file_type} file(s) found in path '{self.remote_path}'.  Exiting...")
+                    f"No {self.target_file_type} file(s) found in path '{self.remote_path}'.  Exiting..."
+                )
                 return
 
             logging.info(
-                f"Found: {len(target_files)} {self.target_file_type} file(s) in path '{self.remote_path}'")
+                f"Found: {len(target_files)} {self.target_file_type} file(s) in path '{self.remote_path}'"
+            )
 
             # tracking
             downloaded_files = []
@@ -165,7 +170,7 @@ class Fetcher:
             )
 
             if failed_downloads or failed_deletions:
-                logging.warning(f"Some operations failed - review logs above")
+                logging.warning("Some operations failed - review logs above")
 
             logging.info("Closing session.")
             SSH_Client.close()
