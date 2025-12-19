@@ -20,15 +20,15 @@ def init_logger() -> None:
         format="%(asctime)s - %(levelname)s - %(message)s",
         handlers=[
             logging.FileHandler("app.log", mode="a"),  # Logs to a file.
-            logging.StreamHandler()  # Logs to console.
-        ]
+            logging.StreamHandler(),  # Logs to console.
+        ],
     )
 
 
 def fetch_and_move(
-        bip_name: str,
-        sc_dct: dict[str, str],
-        path_to_gcs_file: Path,
+    bip_name: str,
+    sc_dct: dict[str, str],
+    path_to_gcs_file: Path,
 ) -> None:
     """
     Fetches files via SFTP and moves them to GCS.
@@ -44,7 +44,7 @@ def fetch_and_move(
         port=int(sc_dct.get("PORT", "22")),
         password=sc_dct.get("PASSWORD", ""),
         path_to_key=sc_dct.get("PATH_TO_KEY", ""),
-        local_path=sc_dct.get("LOCAL_PATH", ".")
+        local_path=sc_dct.get("LOCAL_PATH", "."),
     )
 
     # initialize Fetcher instance for PRTPE_TEST
@@ -57,7 +57,7 @@ def fetch_and_move(
         working_dir=Path(sftp_conf.local_path),
         sent_dir=Path(sc_dct.get("SENT_ITEMS_PATH", "")),
         path_to_gcs_credentials=str(path_to_gcs_file),
-        bucket_name=sc_dct.get("BUCKET_NAME", "")
+        bucket_name=sc_dct.get("BUCKET_NAME", ""),
     )
     Mover(mover_config).start()
 
@@ -80,8 +80,7 @@ def main() -> None:
     try:
         logging.info("Fetching secrets from Infisical...")
         client = InfisicalSDKClient(
-            host="https://eu.infisical.com",
-            token=os.environ.get("INFISCAL_TOKEN", "")
+            host="https://eu.infisical.com", token=os.environ.get("INFISCAL_TOKEN", "")
         )
 
         # fetch secrets for PRTPE_TEST
@@ -89,11 +88,10 @@ def main() -> None:
             project_id="3ed6ea7a-049a-4453-8510-acb86fe0270a",
             project_slug="paa-s-sftp-htwm",
             environment_slug=os.environ.get("INFISCAL_ENVIRONMENT", "dev"),
-            secret_path="/prtpe_test"
+            secret_path="/prtpe_test",
         ).secrets
 
-        sc_dct_prtpe_test = {
-            sc.secretKey: sc.secretValue for sc in sc_prtpe_test}
+        sc_dct_prtpe_test = {sc.secretKey: sc.secretValue for sc in sc_prtpe_test}
 
     except Exception as e:
         logging.error(f"Error fetching secrets from Infisical: {e}")
@@ -105,7 +103,7 @@ def main() -> None:
     fetch_and_move(
         bip_name="PRTPE_TEST",
         sc_dct=sc_dct_prtpe_test,
-        path_to_gcs_file=path_to_gcs_file
+        path_to_gcs_file=path_to_gcs_file,
     )
 
 
