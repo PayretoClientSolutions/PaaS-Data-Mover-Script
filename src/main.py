@@ -80,23 +80,27 @@ def main() -> None:
     try:
         logging.info("Fetching secrets from Infisical...")
         client = InfisicalSDKClient(
-            host="https://eu.infisical.com", token=os.environ.get("INFISCAL_TOKEN", "")
+            host="https://eu.infisical.com", token=os.environ.get("INFISICAL_TOKEN", "")
         )
+
+        project_id = os.environ.get("INFISICAL_PROJECT_ID", "")
+        project_slug = os.environ.get("INFIISCAL_PROJECT_SLUG", "")
+        environment_slug = os.environ.get("INFISICAL_ENVIRONMENT", "dev")
 
         # fetch secrets for PRTPE_TEST
         sc_prtpe_test = client.secrets.list_secrets(
-            project_id="3ed6ea7a-049a-4453-8510-acb86fe0270a",
-            project_slug="paa-s-sftp-htwm",
-            environment_slug=os.environ.get("INFISCAL_ENVIRONMENT", "dev"),
+            project_id=project_id,
+            project_slug=project_slug,
+            environment_slug=environment_slug,
             secret_path="/prtpe_test",
         ).secrets
         sc_dct_prtpe_test = {sc.secretKey: sc.secretValue for sc in sc_prtpe_test}
 
         # fetch secrets for PRTSO_TEST
         sc_prtso_test = client.secrets.list_secrets(
-            project_id="3ed6ea7a-049a-4453-8510-acb86fe0270a",
-            project_slug="paa-s-sftp-htwm",
-            environment_slug=os.environ.get("INFISCAL_ENVIRONMENT", "dev"),
+            project_id=project_id,
+            project_slug=project_slug,
+            environment_slug=environment_slug,
             secret_path="/prtso_test",
         ).secrets
         sc_dct_prtso_test = {sc.secretKey: sc.secretValue for sc in sc_prtso_test}
