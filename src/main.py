@@ -90,19 +90,32 @@ def main() -> None:
             environment_slug=os.environ.get("INFISCAL_ENVIRONMENT", "dev"),
             secret_path="/prtpe_test",
         ).secrets
-
         sc_dct_prtpe_test = {sc.secretKey: sc.secretValue for sc in sc_prtpe_test}
+
+        # fetch secrets for PRTSO_TEST
+        sc_prtso_test = client.secrets.list_secrets(
+            project_id="3ed6ea7a-049a-4453-8510-acb86fe0270a",
+            project_slug="paa-s-sftp-htwm",
+            environment_slug=os.environ.get("INFISCAL_ENVIRONMENT", "dev"),
+            secret_path="/prtso_test",
+        ).secrets
+        sc_dct_prtso_test = {sc.secretKey: sc.secretValue for sc in sc_prtso_test}
 
     except Exception as e:
         logging.error(f"Error fetching secrets from Infisical: {e}")
         return
 
-    ### PRTPE TEST ###
-
-    # map to SFTPConfig dataclass
+    # PRTPE_TEST
     fetch_and_move(
         bip_name="PRTPE_TEST",
         sc_dct=sc_dct_prtpe_test,
+        path_to_gcs_file=path_to_gcs_file,
+    )
+
+    # PRTSO_TEST
+    fetch_and_move(
+        bip_name="PRTSO_TEST",
+        sc_dct=sc_dct_prtso_test,
         path_to_gcs_file=path_to_gcs_file,
     )
 
