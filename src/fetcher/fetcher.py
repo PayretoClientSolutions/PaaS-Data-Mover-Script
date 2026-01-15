@@ -60,7 +60,7 @@ class Fetcher:
             key_load_error = None
 
             # ACI's SFTP server only supports Ed25519 and 4096-bit RSA keys
-            for key_class in (paramiko.Ed25519Key, paramiko.RSAKey):
+            for key_class in (paramiko.RSAKey, paramiko.Ed25519Key):
                 try:
                     private_key = key_class.from_private_key_file(
                         self.path_to_key, password=self.password
