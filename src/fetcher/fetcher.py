@@ -107,7 +107,7 @@ class Fetcher:
             )
         except Exception as e:
             logging.fatal(f"Failed to connect to {self.hostname}: {e}")
-            sys.exit(1)
+            return
 
         # open SFTP session
         try:
