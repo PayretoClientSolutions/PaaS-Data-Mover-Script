@@ -47,7 +47,7 @@ def fetch_and_move(
         local_path=sc_dct.get("LOCAL_PATH", "."),
     )
 
-    # initialize Fetcher instance for PRTPE_TEST
+    # initialize Fetcher class
     logging.info(f"Starting FETCHER for {bip_name}...")
     Fetcher(config=sftp_conf).fetch_files()
 
