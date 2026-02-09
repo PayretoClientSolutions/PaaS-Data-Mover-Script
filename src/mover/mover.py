@@ -19,7 +19,7 @@ class Mover:
 
         # validate required directories exist
         self._validate_directories(self.working_dir)
-        self._validate_directories(self.sent_dir)
+        # self._validate_directories(self.sent_dir)
 
     def _get_files_list(self) -> list[Path]:
         """
@@ -48,6 +48,17 @@ class Mover:
         # Todo: add validation to check if file already exists in the destination
         shutil.move(file, destination)
 
+    def _delete_file(self, file: Path) -> None:
+        """
+        Delete the uploaded file.
+        """
+        logging.info(
+            f"File uploaded successfully, deleting file '{file.name}' from local storage."
+        )
+
+        # Silently succeeds even if the file doesn't exist
+        file.unlink(missing_ok=True)
+
     def _validate_directories(self, dir: Path) -> None:
         """
         Check that the required directory exists, exit if not.
@@ -55,15 +66,14 @@ class Mover:
         logging.info(f"Checking if directory exists: {dir}")
         if not dir.expanduser().exists():
             logging.fatal(
-                f"Required directory '{dir}' does not exist. Exiting..."
-            )
+                f"Required directory '{dir}' does not exist. Exiting...")
             sys.exit(1)
 
     def _upload_file_to_gcs(self, file_path: Path) -> bool:
         """
         Uploads a file to Google Cloud Storage.\n
         Returns True if upload is successful, False otherwise.\n
-        This function assumes that the GCS bucket 'aci_raw' already exists.
+        This function assumes that the GCS bucket already exists.
         The GCS credentials file renamed to 'gcs.json' must be located in the current working directory.
         """
 
@@ -72,7 +82,8 @@ class Mover:
             client = storage.Client()
             bucket = client.get_bucket(self.bucket_name)
         except Exception as e:
-            logging.fatal(f"Could not access GCS bucket '{self.bucket_name}': {e}")
+            logging.fatal(
+                f"Could not access GCS bucket '{self.bucket_name}': {e}")
             sys.exit(1)
 
         # Upload the file.
@@ -111,9 +122,11 @@ class Mover:
         for file in csv_files:
             if self._upload_file_to_gcs(file):
                 uploaded_files_count += 1
-                self._move_to_sent_folder(file)
+                # self._move_to_sent_folder(file)
+                self._delete_file(file)
 
         # end timer then log duration
         end = time.perf_counter()
         logging.info(
-            f"Uploaded {uploaded_files_count} out of {len(files_list)} file(s) successfully for {end - start:.6f} seconds.")
+            f"Uploaded {uploaded_files_count} out of {len(files_list)} file(s) successfully for {end - start:.6f} seconds."
+        )
