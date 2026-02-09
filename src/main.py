@@ -48,18 +48,18 @@ def fetch_and_move(
     )
 
     # initialize Fetcher instance for PRTPE_TEST
-    logging.info(f"Starting FETCHER for {bip_name}...")
-    Fetcher(config=sftp_conf).fetch_files()
+    # logging.info(f"Starting FETCHER for {bip_name}...")
+    # Fetcher(config=sftp_conf).fetch_files()
 
     # initialize Mover class
-    # logging.info(f"Starting MOVER for {bip_name}...")
-    # mover_config = MoverConfig(
-    #     working_dir=Path(sftp_conf.local_path),
-    #     sent_dir=Path(sc_dct.get("SENT_ITEMS_PATH", "")),
-    #     path_to_gcs_credentials=str(path_to_gcs_file),
-    #     bucket_name=sc_dct.get("BUCKET_NAME", ""),
-    # )
-    # Mover(mover_config).start()
+    logging.info(f"Starting MOVER for {bip_name}...")
+    mover_config = MoverConfig(
+        working_dir=Path(sftp_conf.local_path),
+        sent_dir=Path(sc_dct.get("SENT_ITEMS_PATH", "")),
+        path_to_gcs_credentials=str(path_to_gcs_file),
+        bucket_name=sc_dct.get("BUCKET_NAME", ""),
+    )
+    Mover(mover_config).start()
 
 
 def main() -> None:
