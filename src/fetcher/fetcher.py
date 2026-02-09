@@ -132,6 +132,8 @@ class Fetcher:
                 f"Found: {len(target_files)} {self.target_file_type} file(s) in path '{self.remote_path}'"
             )
 
+            return
+
             # tracking
             downloaded_files = []
             failed_downloads = []

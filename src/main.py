@@ -136,6 +136,33 @@ def main() -> None:
         ).secrets
         sc_dct_prtpe = {sc.secretKey: sc.secretValue for sc in sc_prtpe}
 
+        # fetch secrets for PRTSO
+        sc_prtso = client.secrets.list_secrets(
+            project_id=project_id,
+            project_slug=project_slug,
+            environment_slug=environment_slug,
+            secret_path="/prtso",
+        ).secrets
+        sc_dct_prtso = {sc.secretKey: sc.secretValue for sc in sc_prtso}
+
+        # fetch secrets for SOLID
+        sc_solid = client.secrets.list_secrets(
+            project_id=project_id,
+            project_slug=project_slug,
+            environment_slug=environment_slug,
+            secret_path="/solid",
+        ).secrets
+        sc_dct_solid = {sc.secretKey: sc.secretValue for sc in sc_solid}
+
+        # fetch secrets for BIGE
+        sc_bige = client.secrets.list_secrets(
+            project_id=project_id,
+            project_slug=project_slug,
+            environment_slug=environment_slug,
+            secret_path="/bige",
+        ).secrets
+        sc_dct_bige = {sc.secretKey: sc.secretValue for sc in sc_bige}
+
     except Exception as e:
         logging.error(f"Error fetching secrets from Infisical: {e}")
         return
@@ -172,6 +199,27 @@ def main() -> None:
     fetch_and_move(
         bip_name="PRTPE",
         sc_dct=sc_dct_prtpe,
+        path_to_gcs_file=path_to_gcs_file,
+    )
+
+    # PRTSO
+    fetch_and_move(
+        bip_name="PRTSO",
+        sc_dct=sc_dct_prtso,
+        path_to_gcs_file=path_to_gcs_file,
+    )
+
+    # SOLID
+    fetch_and_move(
+        bip_name="SOLID",
+        sc_dct=sc_dct_solid,
+        path_to_gcs_file=path_to_gcs_file,
+    )
+
+    # BIGE
+    fetch_and_move(
+        bip_name="BIGE",
+        sc_dct=sc_dct_bige,
         path_to_gcs_file=path_to_gcs_file,
     )
 
