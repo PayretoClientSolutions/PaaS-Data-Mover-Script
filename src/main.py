@@ -94,7 +94,8 @@ def main() -> None:
             environment_slug=environment_slug,
             secret_path="/prtpe_test",
         ).secrets
-        sc_dct_prtpe_test = {sc.secretKey: sc.secretValue for sc in sc_prtpe_test}
+        sc_dct_prtpe_test = {
+            sc.secretKey: sc.secretValue for sc in sc_prtpe_test}
 
         # fetch secrets for PRTSO_TEST
         sc_prtso_test = client.secrets.list_secrets(
@@ -103,7 +104,8 @@ def main() -> None:
             environment_slug=environment_slug,
             secret_path="/prtso_test",
         ).secrets
-        sc_dct_prtso_test = {sc.secretKey: sc.secretValue for sc in sc_prtso_test}
+        sc_dct_prtso_test = {
+            sc.secretKey: sc.secretValue for sc in sc_prtso_test}
 
         # fetch secrets for SOLID_TEST
         sc_solid_test = client.secrets.list_secrets(
@@ -112,7 +114,8 @@ def main() -> None:
             environment_slug=environment_slug,
             secret_path="/solid_test",
         ).secrets
-        sc_dct_solid_test = {sc.secretKey: sc.secretValue for sc in sc_solid_test}
+        sc_dct_solid_test = {
+            sc.secretKey: sc.secretValue for sc in sc_solid_test}
 
         # fetch secrets for BIGE_TEST
         sc_bige_test = client.secrets.list_secrets(
@@ -121,7 +124,17 @@ def main() -> None:
             environment_slug=environment_slug,
             secret_path="/bige_test",
         ).secrets
-        sc_dct_bige_test = {sc.secretKey: sc.secretValue for sc in sc_bige_test}
+        sc_dct_bige_test = {
+            sc.secretKey: sc.secretValue for sc in sc_bige_test}
+
+        # fetch secrets for PRTPE
+        sc_prtpe = client.secrets.list_secrets(
+            project_id=project_id,
+            project_slug=project_slug,
+            environment_slug=environment_slug,
+            secret_path="/prtpe",
+        ).secrets
+        sc_dct_prtpe = {sc.secretKey: sc.secretValue for sc in sc_prtpe}
 
     except Exception as e:
         logging.error(f"Error fetching secrets from Infisical: {e}")
@@ -152,6 +165,13 @@ def main() -> None:
     fetch_and_move(
         bip_name="BIGE_TEST",
         sc_dct=sc_dct_bige_test,
+        path_to_gcs_file=path_to_gcs_file,
+    )
+
+    # PRTPE
+    fetch_and_move(
+        bip_name="PRTPE",
+        sc_dct=sc_dct_prtpe,
         path_to_gcs_file=path_to_gcs_file,
     )
 
