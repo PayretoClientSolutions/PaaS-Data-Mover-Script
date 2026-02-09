@@ -167,40 +167,40 @@ def main() -> None:
         logging.error(f"Error fetching secrets from Infisical: {e}")
         return
 
-    # PRTPE_TEST
-    fetch_and_move(
-        bip_name="PRTPE_TEST",
-        sc_dct=sc_dct_prtpe_test,
-        path_to_gcs_file=path_to_gcs_file,
-    )
+    # # PRTPE_TEST
+    # fetch_and_move(
+    #     bip_name="PRTPE_TEST",
+    #     sc_dct=sc_dct_prtpe_test,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
 
-    # PRTSO_TEST
-    fetch_and_move(
-        bip_name="PRTSO_TEST",
-        sc_dct=sc_dct_prtso_test,
-        path_to_gcs_file=path_to_gcs_file,
-    )
+    # # PRTSO_TEST
+    # fetch_and_move(
+    #     bip_name="PRTSO_TEST",
+    #     sc_dct=sc_dct_prtso_test,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
 
-    # SOLID_TEST
-    fetch_and_move(
-        bip_name="SOLID_TEST",
-        sc_dct=sc_dct_solid_test,
-        path_to_gcs_file=path_to_gcs_file,
-    )
+    # # SOLID_TEST
+    # fetch_and_move(
+    #     bip_name="SOLID_TEST",
+    #     sc_dct=sc_dct_solid_test,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
 
-    # BIGE_TEST
-    fetch_and_move(
-        bip_name="BIGE_TEST",
-        sc_dct=sc_dct_bige_test,
-        path_to_gcs_file=path_to_gcs_file,
-    )
+    # # BIGE_TEST
+    # fetch_and_move(
+    #     bip_name="BIGE_TEST",
+    #     sc_dct=sc_dct_bige_test,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
 
-    # PRTPE
-    fetch_and_move(
-        bip_name="PRTPE",
-        sc_dct=sc_dct_prtpe,
-        path_to_gcs_file=path_to_gcs_file,
-    )
+    # # PRTPE
+    # fetch_and_move(
+    #     bip_name="PRTPE",
+    #     sc_dct=sc_dct_prtpe,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
 
     # PRTSO
     fetch_and_move(
