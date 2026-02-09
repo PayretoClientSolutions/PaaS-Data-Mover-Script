@@ -48,11 +48,11 @@ def fetch_and_move(
     )
 
     # initialize Fetcher class
-    logging.info(f"Starting FETCHER for {bip_name}...")
+    logging.info(f"> > > > > FETCHER task started for {bip_name} < < < < <")
     Fetcher(config=sftp_conf).fetch_files()
 
     # initialize Mover class
-    logging.info(f"Starting MOVER for {bip_name}...")
+    logging.info(f"> > > > > MOVER task started for {bip_name} < < < < <")
     mover_config = MoverConfig(
         working_dir=Path(sftp_conf.local_path),
         sent_dir=Path(sc_dct.get("SENT_ITEMS_PATH", "")),
