@@ -29,6 +29,8 @@ def fetch_and_move(
     bip_name: str,
     sc_dct: dict[str, str],
     path_to_gcs_file: Path,
+    is_fetcher_enabled: bool = True,
+    is_mover_enabled: bool = True,
 ) -> None:
     """
     Fetches files via SFTP and moves them to GCS.
@@ -37,6 +39,13 @@ def fetch_and_move(
         sc_dct (dict[str, str]): Secrets dictionary
         path_to_gcs_file (Path): Path to GCS credentials file
     """
+
+    if not is_fetcher_enabled and not is_mover_enabled:
+        logging.warning(
+            f"Both fetcher and mover are disabled for {bip_name}. No action will be taken."
+        )
+        return
+
     # map to SFTPConfig dataclass
     sftp_conf = SFTPConfig(
         hostname=sc_dct.get("HOSTNAME", ""),
@@ -47,19 +56,21 @@ def fetch_and_move(
         local_path=sc_dct.get("LOCAL_PATH", "."),
     )
 
-    # initialize Fetcher class
-    logging.info(f"> > > > > FETCHER task started for {bip_name} < < < < <")
-    Fetcher(config=sftp_conf).fetch_files()
+    if is_fetcher_enabled:
+        # initialize Fetcher class
+        logging.info(f"> > > > > FETCHER task started for {bip_name} < < < < <")
+        Fetcher(config=sftp_conf).fetch_files()
 
-    # initialize Mover class
-    logging.info(f"> > > > > MOVER task started for {bip_name} < < < < <")
-    mover_config = MoverConfig(
-        working_dir=Path(sftp_conf.local_path),
-        sent_dir=Path(sc_dct.get("SENT_ITEMS_PATH", "")),
-        path_to_gcs_credentials=str(path_to_gcs_file),
-        bucket_name=sc_dct.get("BUCKET_NAME", ""),
-    )
-    Mover(mover_config).start()
+    if is_mover_enabled:
+        # initialize Mover class
+        logging.info(f"> > > > > MOVER task started for {bip_name} < < < < <")
+        mover_config = MoverConfig(
+            working_dir=Path(sftp_conf.local_path),
+            sent_dir=Path(sc_dct.get("SENT_ITEMS_PATH", "")),
+            path_to_gcs_credentials=str(path_to_gcs_file),
+            bucket_name=sc_dct.get("BUCKET_NAME", ""),
+        )
+        Mover(mover_config).start()
 
 
 def main() -> None:
@@ -200,6 +211,8 @@ def main() -> None:
         bip_name="PRTPE",
         sc_dct=sc_dct_prtpe,
         path_to_gcs_file=path_to_gcs_file,
+        is_fetcher_enabled=True,
+        is_mover_enabled=False,
     )
 
     # # PRTSO
