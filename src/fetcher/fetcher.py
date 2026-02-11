@@ -2,8 +2,10 @@ import logging
 import os
 import sys
 import time
+from pathlib import Path
 
 import paramiko
+from google.cloud import storage
 
 from models import SFTPConfig
 
@@ -18,6 +20,12 @@ class Fetcher:
         self.local_path = os.path.expanduser(config.local_path)
         self.target_file_type = config.target_file_type
         self.remote_path = config.remote_path
+        self.bucket_name = config.bucket_name
+        self.path_to_gcs_credentials = config.path_to_gcs_credentials
+
+        # init google GCS credentials
+        logging.info("Initializing Google Cloud Storage client.")
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.path_to_gcs_credentials
 
         logging.info(f"Checking if local_path exists: {self.local_path}")
         if not os.path.exists(self.local_path):
@@ -147,6 +155,19 @@ class Fetcher:
                     sftp_client.get(remote_file_path, local_file_path)
                     downloaded_files.append(file_name)
 
+                    # upload to GCS
+                    local_file: Path = Path(local_file_path)
+                    logging.info(
+                        f"Uploading {file_name} to Google Cloud Storage")
+                    upload_success = self._upload_file_to_gcs(local_file)
+                    if upload_success:
+                        logging.info(
+                            f"Upload of {file_name} to GCS successful, deleting local copy.")
+                        local_file.unlink()
+                    else:
+                        logging.error(
+                            f"Upload of {file_name} to GCS failed, retaining local copy.")
+
                 except KeyboardInterrupt as e:
                     logging.warning("Download interrupted by user. Exiting...")
                     return
@@ -191,3 +212,31 @@ class Fetcher:
             # ensure SSH connection is always closed
             if SSH_Client:
                 SSH_Client.close()
+
+    def _upload_file_to_gcs(self, file_path: Path) -> bool:
+        """
+        Uploads a file to Google Cloud Storage.\n
+        Returns True if upload is successful, False otherwise.\n
+        This function assumes that the GCS bucket already exists.
+        The GCS credentials file renamed to 'gcs.json' must be located in the current working directory.
+        """
+
+        try:
+            # Initialize GCS client.
+            client = storage.Client()
+            bucket = client.get_bucket(self.bucket_name)
+        except Exception as e:
+            logging.fatal(
+                f"Could not access GCS bucket '{self.bucket_name}': {e}")
+            sys.exit(1)
+
+        # Upload the file.
+        try:
+            logging.info(f"Uploading file {file_path.name}")
+            blob = bucket.blob(file_path.name)
+            blob.upload_from_filename(filename=str(file_path))
+            return True
+
+        except Exception as e:
+            logging.error(f"Failed to upload file {file_path.name}: {e}")
+            return False
