@@ -154,19 +154,18 @@ class Fetcher:
                     logging.info(f"Downloading file {file_name}")
                     sftp_client.get(remote_file_path, local_file_path)
                     downloaded_files.append(file_name)
-
-                    # upload to GCS
-                    local_file: Path = Path(local_file_path)
                     logging.info(
-                        f"Uploading {file_name} to Google Cloud Storage")
+                        f"{len(downloaded_files)}/{len(target_files)} downloaded so far.")
+
+                    # upload to GCS and delete local copy if upload is successful
+                    local_file: Path = Path(local_file_path)
                     upload_success = self._upload_file_to_gcs(local_file)
                     if upload_success:
                         logging.info(
-                            f"Upload of {file_name} to GCS successful, deleting local copy.")
+                            f"Upload SUCCESSFUL! Deleting local copy.")
                         local_file.unlink()
                     else:
-                        logging.error(
-                            f"Upload of {file_name} to GCS failed, retaining local copy.")
+                        logging.error(f"Upload FAILED! retaining local copy.")
 
                 except KeyboardInterrupt as e:
                     logging.warning("Download interrupted by user. Exiting...")
