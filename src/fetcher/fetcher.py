@@ -132,8 +132,6 @@ class Fetcher:
                 f"Found: {len(target_files)} {self.target_file_type} file(s) in path '{self.remote_path}'"
             )
 
-            return
-
             # tracking
             downloaded_files = []
             failed_downloads = []
@@ -148,6 +146,11 @@ class Fetcher:
                     logging.info(f"Downloading file {file_name}")
                     sftp_client.get(remote_file_path, local_file_path)
                     downloaded_files.append(file_name)
+
+                except KeyboardInterrupt as e:
+                    logging.warning("Download interrupted by user. Exiting...")
+                    return
+                
                 except Exception as e:
                     logging.error(f"Failed to download {file_name}: {e}")
                     failed_downloads.append(file_name)
@@ -157,6 +160,11 @@ class Fetcher:
                 try:
                     logging.info(f"Deleting remote file {file_name}")
                     sftp_client.remove(remote_file_path)
+
+                except KeyboardInterrupt as e:
+                    logging.warning("Delete interrupted by user. Exiting...")
+                    return
+                
                 except Exception as e:
                     logging.error(f"Failed to remove {file_name}: {e}")
                     failed_deletions.append(file_name)

@@ -195,33 +195,33 @@ def main() -> None:
     #     path_to_gcs_file=path_to_gcs_file,
     # )
 
-    # # PRTPE
+    # PRTPE
+    fetch_and_move(
+        bip_name="PRTPE",
+        sc_dct=sc_dct_prtpe,
+        path_to_gcs_file=path_to_gcs_file,
+    )
+
+    # # PRTSO
     # fetch_and_move(
-    #     bip_name="PRTPE",
-    #     sc_dct=sc_dct_prtpe,
+    #     bip_name="PRTSO",
+    #     sc_dct=sc_dct_prtso,
     #     path_to_gcs_file=path_to_gcs_file,
     # )
 
-    # PRTSO
-    fetch_and_move(
-        bip_name="PRTSO",
-        sc_dct=sc_dct_prtso,
-        path_to_gcs_file=path_to_gcs_file,
-    )
+    # # SOLID
+    # fetch_and_move(
+    #     bip_name="SOLID",
+    #     sc_dct=sc_dct_solid,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
 
-    # SOLID
-    fetch_and_move(
-        bip_name="SOLID",
-        sc_dct=sc_dct_solid,
-        path_to_gcs_file=path_to_gcs_file,
-    )
-
-    # BIGE
-    fetch_and_move(
-        bip_name="BIGE",
-        sc_dct=sc_dct_bige,
-        path_to_gcs_file=path_to_gcs_file,
-    )
+    # # BIGE
+    # fetch_and_move(
+    #     bip_name="BIGE",
+    #     sc_dct=sc_dct_bige,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
 
 
 if __name__ == "__main__":
