@@ -95,7 +95,7 @@ class Fetcher:
                 if key_load_error:
                     error_msg += f": {key_load_error}"
                 logging.fatal(error_msg)
-                sys.exit(1)
+                return
 
             SSH_Client.connect(
                 hostname=self.hostname,
@@ -150,7 +150,7 @@ class Fetcher:
                 except KeyboardInterrupt as e:
                     logging.warning("Download interrupted by user. Exiting...")
                     return
-                
+
                 except Exception as e:
                     logging.error(f"Failed to download {file_name}: {e}")
                     failed_downloads.append(file_name)
@@ -164,7 +164,7 @@ class Fetcher:
                 except KeyboardInterrupt as e:
                     logging.warning("Delete interrupted by user. Exiting...")
                     return
-                
+
                 except Exception as e:
                     logging.error(f"Failed to remove {file_name}: {e}")
                     failed_deletions.append(file_name)
