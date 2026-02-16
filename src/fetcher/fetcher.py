@@ -129,6 +129,8 @@ class Fetcher:
                 f for f in remote_files if f.endswith(self.target_file_type)
             ]
 
+            return
+
             # exit if no files found
             if not target_files:
                 logging.info(
