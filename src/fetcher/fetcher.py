@@ -129,8 +129,6 @@ class Fetcher:
                 f for f in remote_files if f.endswith(self.target_file_type)
             ]
 
-            return
-
             # exit if no files found
             if not target_files:
                 logging.info(
@@ -141,6 +139,8 @@ class Fetcher:
             logging.info(
                 f"Found: {len(target_files)} {self.target_file_type} file(s) in path '{self.remote_path}'"
             )
+
+            return
 
             # tracking
             downloaded_files = []
