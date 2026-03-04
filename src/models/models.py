@@ -23,6 +23,8 @@ class SFTPConfig:
     password: str
     path_to_key: str
     local_path: str
+    bucket_name: str
+    path_to_gcs_credentials: str
     target_file_type: str = ".csv"
     remote_path: str = "/REPORTS"
 

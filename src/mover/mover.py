@@ -3,6 +3,7 @@ import os
 import shutil
 import sys
 import time
+import warnings
 from pathlib import Path
 
 from google.cloud import storage
@@ -12,6 +13,9 @@ from models import MoverConfig
 
 class Mover:
     def __init__(self, config: MoverConfig) -> None:
+        warnings.warn(
+            "The Mover class is currently not in use anymore and may be removed in future versions.", DeprecationWarning, stacklevel=2)
+
         self.working_dir = config.working_dir
         self.sent_dir = config.sent_dir
         self.path_to_gcs_credentials = config.path_to_gcs_credentials

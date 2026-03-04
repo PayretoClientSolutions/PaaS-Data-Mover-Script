@@ -8,7 +8,8 @@ from infisical_sdk import InfisicalSDKClient
 from fetcher import Fetcher
 from models import SFTPConfig
 from models.models import MoverConfig
-from mover import Mover
+
+# from mover import Mover
 
 
 def init_logger() -> None:
@@ -37,6 +38,7 @@ def fetch_and_move(
         sc_dct (dict[str, str]): Secrets dictionary
         path_to_gcs_file (Path): Path to GCS credentials file
     """
+
     # map to SFTPConfig dataclass
     sftp_conf = SFTPConfig(
         hostname=sc_dct.get("HOSTNAME", ""),
@@ -45,21 +47,24 @@ def fetch_and_move(
         password=sc_dct.get("PASSWORD", ""),
         path_to_key=sc_dct.get("PATH_TO_KEY", ""),
         local_path=sc_dct.get("LOCAL_PATH", "."),
+        bucket_name=sc_dct.get("BUCKET_NAME", ""),
+        path_to_gcs_credentials=str(path_to_gcs_file),
     )
 
-    # initialize Fetcher instance for PRTPE_TEST
-    logging.info(f"Starting FETCHER for {bip_name}...")
+    # initialize Fetcher class
+    logging.info(
+        f"> > > > > FETCHER task started for {bip_name} < < < < <")
     Fetcher(config=sftp_conf).fetch_files()
 
-    # initialize Mover class
-    logging.info(f"Starting MOVER for {bip_name}...")
-    mover_config = MoverConfig(
-        working_dir=Path(sftp_conf.local_path),
-        sent_dir=Path(sc_dct.get("SENT_ITEMS_PATH", "")),
-        path_to_gcs_credentials=str(path_to_gcs_file),
-        bucket_name=sc_dct.get("BUCKET_NAME", ""),
-    )
-    Mover(mover_config).start()
+    # # initialize Mover class
+    # logging.info(f"> > > > > MOVER task started for {bip_name} < < < < <")
+    # mover_config = MoverConfig(
+    #     working_dir=Path(sftp_conf.local_path),
+    #     sent_dir=Path(sc_dct.get("SENT_ITEMS_PATH", "")),
+    #     path_to_gcs_credentials=str(path_to_gcs_file),
+    #     bucket_name=sc_dct.get("BUCKET_NAME", ""),
+    # )
+    # Mover(mover_config).start()
 
 
 def main() -> None:
@@ -136,37 +141,64 @@ def main() -> None:
         ).secrets
         sc_dct_prtpe = {sc.secretKey: sc.secretValue for sc in sc_prtpe}
 
+        # fetch secrets for PRTSO
+        sc_prtso = client.secrets.list_secrets(
+            project_id=project_id,
+            project_slug=project_slug,
+            environment_slug=environment_slug,
+            secret_path="/prtso",
+        ).secrets
+        sc_dct_prtso = {sc.secretKey: sc.secretValue for sc in sc_prtso}
+
+        # fetch secrets for SOLID
+        sc_solid = client.secrets.list_secrets(
+            project_id=project_id,
+            project_slug=project_slug,
+            environment_slug=environment_slug,
+            secret_path="/solid",
+        ).secrets
+        sc_dct_solid = {sc.secretKey: sc.secretValue for sc in sc_solid}
+
+        # fetch secrets for BIGE
+        sc_bige = client.secrets.list_secrets(
+            project_id=project_id,
+            project_slug=project_slug,
+            environment_slug=environment_slug,
+            secret_path="/bige",
+        ).secrets
+        sc_dct_bige = {sc.secretKey: sc.secretValue for sc in sc_bige}
+
     except Exception as e:
         logging.error(f"Error fetching secrets from Infisical: {e}")
         return
 
-    # PRTPE_TEST
-    fetch_and_move(
-        bip_name="PRTPE_TEST",
-        sc_dct=sc_dct_prtpe_test,
-        path_to_gcs_file=path_to_gcs_file,
-    )
+    # # PRTPE_TEST
+    # fetch_and_move(
+    #     bip_name="PRTPE_TEST",
+    #     sc_dct=sc_dct_prtpe_test,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
 
-    # PRTSO_TEST
-    fetch_and_move(
-        bip_name="PRTSO_TEST",
-        sc_dct=sc_dct_prtso_test,
-        path_to_gcs_file=path_to_gcs_file,
-    )
+    # # PRTSO_TEST
+    # fetch_and_move(
+    #     bip_name="PRTSO_TEST",
+    #     sc_dct=sc_dct_prtso_test,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
 
-    # SOLID_TEST
-    fetch_and_move(
-        bip_name="SOLID_TEST",
-        sc_dct=sc_dct_solid_test,
-        path_to_gcs_file=path_to_gcs_file,
-    )
+    # # SOLID_TEST
+    # fetch_and_move(
+    #     bip_name="SOLID_TEST",
+    #     sc_dct=sc_dct_solid_test,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
 
-    # BIGE_TEST
-    fetch_and_move(
-        bip_name="BIGE_TEST",
-        sc_dct=sc_dct_bige_test,
-        path_to_gcs_file=path_to_gcs_file,
-    )
+    # # BIGE_TEST
+    # fetch_and_move(
+    #     bip_name="BIGE_TEST",
+    #     sc_dct=sc_dct_bige_test,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
 
     # PRTPE
     fetch_and_move(
@@ -174,6 +206,27 @@ def main() -> None:
         sc_dct=sc_dct_prtpe,
         path_to_gcs_file=path_to_gcs_file,
     )
+
+    # # PRTSO
+    # fetch_and_move(
+    #     bip_name="PRTSO",
+    #     sc_dct=sc_dct_prtso,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
+
+    # # SOLID
+    # fetch_and_move(
+    #     bip_name="SOLID",
+    #     sc_dct=sc_dct_solid,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
+
+    # # BIGE
+    # fetch_and_move(
+    #     bip_name="BIGE",
+    #     sc_dct=sc_dct_bige,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
 
 
 if __name__ == "__main__":
