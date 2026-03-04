@@ -204,14 +204,14 @@ class Fetcher:
             if failed_downloads or failed_deletions:
                 logging.warning("Some operations failed - review logs above")
 
-            logging.info("Closing session.")
-            SSH_Client.close()
         except Exception as e:
             logging.fatal(f"Failed to open SFTP session: {e}")
             return
+
         finally:
             # ensure SSH connection is always closed
             if SSH_Client:
+                logging.info("Finally closing session.")
                 SSH_Client.close()
 
     def _upload_file_to_gcs(self, file_path: Path) -> bool:
