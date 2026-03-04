@@ -17,7 +17,7 @@ def init_logger() -> None:
     Initializes the logger for the whole script
     """
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,
         format="%(asctime)s - %(levelname)s - %(message)s",
         handlers=[
             logging.FileHandler("app.log", mode="a"),  # Logs to a file.
