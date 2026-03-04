@@ -229,7 +229,7 @@ class Fetcher:
         except Exception as e:
             logging.fatal(
                 f"Could not access GCS bucket '{self.bucket_name}': {e}")
-            sys.exit(1)
+            return False
 
         # Upload the file.
         try:
