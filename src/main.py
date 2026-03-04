@@ -17,7 +17,7 @@ def init_logger() -> None:
     Initializes the logger for the whole script
     """
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
         handlers=[
             logging.FileHandler("app.log", mode="a"),  # Logs to a file.
@@ -184,12 +184,12 @@ def main() -> None:
         logging.error(f"Error fetching secrets from Infisical: {e}")
         return
 
-    # # PRTPE_TEST
-    # fetch_and_move(
-    #     bip_name="PRTPE_TEST",
-    #     sc_dct=sc_dct_prtpe_test,
-    #     path_to_gcs_file=path_to_gcs_file,
-    # )
+    # PRTPE_TEST
+    fetch_and_move(
+        bip_name="PRTPE_TEST",
+        sc_dct=sc_dct_prtpe_test,
+        path_to_gcs_file=path_to_gcs_file,
+    )
 
     # # PRTSO_TEST
     # fetch_and_move(
