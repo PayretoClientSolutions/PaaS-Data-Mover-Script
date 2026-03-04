@@ -54,7 +54,13 @@ def fetch_and_move(
     # initialize Fetcher class
     logging.info(
         f"> > > > > FETCHER task started for {bip_name} < < < < <")
-    Fetcher(config=sftp_conf).fetch_files()
+
+    try:
+        Fetcher(config=sftp_conf).fetch_files()
+    except Exception as e:
+        logging.error(
+            f"Error occurred while runnig Fetcher for {bip_name}: {e}")
+        return
 
     # # initialize Mover class
     # logging.info(f"> > > > > MOVER task started for {bip_name} < < < < <")
