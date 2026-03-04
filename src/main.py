@@ -57,9 +57,15 @@ def fetch_and_move(
 
     try:
         Fetcher(config=sftp_conf).fetch_files()
+
+    except SystemExit as e:
+        logging.error(
+            f"SystemExit occurred while running Fetcher for {bip_name}: {e}")
+        return
+
     except Exception as e:
         logging.error(
-            f"Error occurred while runnig Fetcher for {bip_name}: {e}")
+            f"Error occurred while running Fetcher for {bip_name}: {e}")
         return
 
     # # initialize Mover class
