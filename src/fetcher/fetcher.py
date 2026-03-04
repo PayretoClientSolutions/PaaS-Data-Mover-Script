@@ -26,6 +26,11 @@ class Fetcher:
         # init google GCS credentials
         logging.info("Initializing Google Cloud Storage client.")
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.path_to_gcs_credentials
+        try:
+            self.gcs_client = storage.Client()
+        except Exception as e:
+            logging.error(f"Error initializing GCS client: {e}")
+            sys.exit(1)
 
         logging.info(f"Checking if local_path exists: {self.local_path}")
         if not os.path.exists(self.local_path):
@@ -224,9 +229,7 @@ class Fetcher:
         """
 
         try:
-            # Initialize GCS client.
-            client = storage.Client()
-            bucket = client.get_bucket(self.bucket_name)
+            bucket = self.gcs_client.get_bucket(self.bucket_name)
         except Exception as e:
             logging.fatal(
                 f"Could not access GCS bucket '{self.bucket_name}': {e}")
