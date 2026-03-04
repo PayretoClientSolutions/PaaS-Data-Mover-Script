@@ -112,6 +112,7 @@ class Fetcher:
                 pkey=private_key,
                 look_for_keys=False,
                 allow_agent=False,
+                timeout=30
             )
         except Exception as e:
             logging.fatal(f"Failed to connect to {self.hostname}: {e}")
