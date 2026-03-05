@@ -146,7 +146,13 @@ class Fetcher:
                 f"Found: {len(target_files)} {self.target_file_type} file(s) in path '{self.remote_path}'"
             )
 
-            # return
+            # fetch GCS bucket once before the loop
+            try:
+                bucket = self.gcs_client.get_bucket(self.bucket_name)
+            except Exception as e:
+                logging.fatal(
+                    f"Could not access GCS bucket '{self.bucket_name}': {e}")
+                return
 
             # tracking
             downloaded_files = []
@@ -167,7 +173,8 @@ class Fetcher:
 
                     # upload to GCS and delete local copy if upload is successful
                     local_file: Path = Path(local_file_path)
-                    upload_success = self._upload_file_to_gcs(local_file)
+                    upload_success = self._upload_file_to_gcs(
+                        local_file, bucket)
                     if upload_success:
                         logging.info(
                             f"Upload SUCCESSFUL! Deleting local copy.")
@@ -197,6 +204,8 @@ class Fetcher:
                     logging.error(f"Failed to remove {file_name}: {e}")
                     failed_deletions.append(file_name)
 
+                time.sleep(1)
+
             end = time.perf_counter()
 
             # summary logging
@@ -220,20 +229,13 @@ class Fetcher:
                 logging.info("Finally closing session.")
                 SSH_Client.close()
 
-    def _upload_file_to_gcs(self, file_path: Path) -> bool:
+    def _upload_file_to_gcs(self, file_path: Path, bucket) -> bool:
         """
         Uploads a file to Google Cloud Storage.\n
         Returns True if upload is successful, False otherwise.\n
         This function assumes that the GCS bucket already exists.
         The GCS credentials file renamed to 'gcs.json' must be located in the current working directory.
         """
-
-        try:
-            bucket = self.gcs_client.get_bucket(self.bucket_name)
-        except Exception as e:
-            logging.fatal(
-                f"Could not access GCS bucket '{self.bucket_name}': {e}")
-            return False
 
         # Upload the file.
         try:
