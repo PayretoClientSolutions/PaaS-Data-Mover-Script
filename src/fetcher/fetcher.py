@@ -146,6 +146,9 @@ class Fetcher:
                 f"Found: {len(target_files)} {self.target_file_type} file(s) in path '{self.remote_path}'"
             )
 
+            # quick patch to test SFTP connection
+            return
+
             # fetch GCS bucket once before the loop
             try:
                 bucket = self.gcs_client.get_bucket(self.bucket_name)
