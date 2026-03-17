@@ -7,7 +7,6 @@ from infisical_sdk import InfisicalSDKClient
 
 from fetcher import Fetcher
 from models import SFTPConfig
-from models.models import MoverConfig
 
 # from mover import Mover
 
@@ -67,16 +66,6 @@ def fetch_and_move(
         logging.error(
             f"Error occurred while running Fetcher for {bip_name}: {e}")
         return
-
-    # # initialize Mover class
-    # logging.info(f"> > > > > MOVER task started for {bip_name} < < < < <")
-    # mover_config = MoverConfig(
-    #     working_dir=Path(sftp_conf.local_path),
-    #     sent_dir=Path(sc_dct.get("SENT_ITEMS_PATH", "")),
-    #     path_to_gcs_credentials=str(path_to_gcs_file),
-    #     bucket_name=sc_dct.get("BUCKET_NAME", ""),
-    # )
-    # Mover(mover_config).start()
 
 
 def main() -> None:
@@ -184,12 +173,12 @@ def main() -> None:
         logging.error(f"Error fetching secrets from Infisical: {e}")
         return
 
-    # PRTPE_TEST
-    fetch_and_move(
-        bip_name="PRTPE_TEST",
-        sc_dct=sc_dct_prtpe_test,
-        path_to_gcs_file=path_to_gcs_file,
-    )
+    # # PRTPE_TEST
+    # fetch_and_move(
+    #     bip_name="PRTPE_TEST",
+    #     sc_dct=sc_dct_prtpe_test,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
 
     # # PRTSO_TEST
     # fetch_and_move(
@@ -219,26 +208,26 @@ def main() -> None:
         path_to_gcs_file=path_to_gcs_file,
     )
 
-    # # PRTSO
-    # fetch_and_move(
-    #     bip_name="PRTSO",
-    #     sc_dct=sc_dct_prtso,
-    #     path_to_gcs_file=path_to_gcs_file,
-    # )
+    # PRTSO
+    fetch_and_move(
+        bip_name="PRTSO",
+        sc_dct=sc_dct_prtso,
+        path_to_gcs_file=path_to_gcs_file,
+    )
 
-    # # SOLID
-    # fetch_and_move(
-    #     bip_name="SOLID",
-    #     sc_dct=sc_dct_solid,
-    #     path_to_gcs_file=path_to_gcs_file,
-    # )
+    # SOLID
+    fetch_and_move(
+        bip_name="SOLID",
+        sc_dct=sc_dct_solid,
+        path_to_gcs_file=path_to_gcs_file,
+    )
 
-    # # BIGE
-    # fetch_and_move(
-    #     bip_name="BIGE",
-    #     sc_dct=sc_dct_bige,
-    #     path_to_gcs_file=path_to_gcs_file,
-    # )
+    # BIGE
+    fetch_and_move(
+        bip_name="BIGE",
+        sc_dct=sc_dct_bige,
+        path_to_gcs_file=path_to_gcs_file,
+    )
 
 
 if __name__ == "__main__":
