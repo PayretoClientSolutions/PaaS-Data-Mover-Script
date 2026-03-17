@@ -147,7 +147,7 @@ class Fetcher:
             )
 
             # quick patch to test SFTP connection
-            return
+            # return
 
             # fetch GCS bucket once before the loop
             try:
