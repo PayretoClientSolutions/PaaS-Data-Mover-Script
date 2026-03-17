@@ -7,7 +7,6 @@ from infisical_sdk import InfisicalSDKClient
 
 from fetcher import Fetcher
 from models import SFTPConfig
-from models.models import MoverConfig
 
 # from mover import Mover
 
@@ -67,16 +66,6 @@ def fetch_and_move(
         logging.error(
             f"Error occurred while running Fetcher for {bip_name}: {e}")
         return
-
-    # # initialize Mover class
-    # logging.info(f"> > > > > MOVER task started for {bip_name} < < < < <")
-    # mover_config = MoverConfig(
-    #     working_dir=Path(sftp_conf.local_path),
-    #     sent_dir=Path(sc_dct.get("SENT_ITEMS_PATH", "")),
-    #     path_to_gcs_credentials=str(path_to_gcs_file),
-    #     bucket_name=sc_dct.get("BUCKET_NAME", ""),
-    # )
-    # Mover(mover_config).start()
 
 
 def main() -> None:
