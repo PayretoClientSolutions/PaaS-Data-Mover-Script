@@ -1,5 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import List
 
 
 @dataclass
@@ -27,6 +28,36 @@ class SFTPConfig:
     path_to_gcs_credentials: str
     target_file_type: str = ".csv"
     remote_path: str = "/REPORTS"
+
+
+@dataclass
+class EmailConfig:
+    """
+    Configuration for SMTP email sending.
+
+    Attributes:
+        host (str): SMTP server hostname.
+        port (int): SMTP server port (e.g., 587 for STARTTLS, 465 for SSL).
+        username (str): SMTP username (optional if server allows anonymous or IP-based relaying).
+        password (str): SMTP password (optional).
+        from_addr (str): The sender email address (From header).
+        to_addrs (List[str]): List of recipient email addresses.
+        use_tls (bool): Use STARTTLS after connecting (default: True).
+        use_ssl (bool): Use implicit SSL (SMTPS) (default: False). If True, STARTTLS is ignored.
+        subject_prefix (str): Optional subject prefix for all messages (e.g., "[PaaS-Data-Mover]").
+        app_name (str): Optional application name used in default subjects for exception emails.
+    """
+
+    host: str
+    port: int
+    username: str | None = None
+    password: str | None = None
+    from_addr: str = ""
+    to_addrs: List[str] = field(default_factory=list)
+    use_tls: bool = True
+    use_ssl: bool = False
+    subject_prefix: str = ""
+    app_name: str = ""
 
 
 # @dataclass

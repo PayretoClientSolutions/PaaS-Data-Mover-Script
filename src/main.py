@@ -7,6 +7,8 @@ from infisical_sdk import InfisicalSDKClient
 
 from fetcher import Fetcher
 from models import SFTPConfig
+from models.models import EmailConfig
+from sender import Sender
 
 # from mover import Mover
 
@@ -23,6 +25,29 @@ def init_logger() -> None:
             logging.StreamHandler(),  # Logs to console.
         ],
     )
+
+
+def init_sender() -> Sender:
+    """
+    Initializes the Sender class for email notifications.
+    Returns:
+        Sender: An instance of the Sender class configured with SMTP settings.
+    """
+    email_cfg = EmailConfig(
+        host=os.environ.get("SMTP_HOST", ""),
+        port=int(os.environ.get("SMTP_PORT", "587")),
+        username=os.environ.get("SMTP_USERNAME"),
+        password=os.environ.get("SMTP_PASSWORD"),
+        from_addr=os.environ.get("SMTP_FROM_ADDR", ""),
+        to_addrs=os.environ.get("SMTP_TO_ADDRS", "").split(","),
+        use_tls=os.environ.get("SMTP_USE_TLS", "true").lower() == "true",
+        use_ssl=os.environ.get("SMTP_USE_SSL", "false").lower() == "true",
+        subject_prefix=os.environ.get(
+            "SMTP_SUBJECT_PREFIX", "[PaaS-Data-Mover]"),
+        app_name=os.environ.get("APP_NAME", "PaaS-Data-Mover"),
+    )
+
+    return Sender(config=email_cfg)
 
 
 def fetch_and_move(
@@ -71,6 +96,10 @@ def fetch_and_move(
 def main() -> None:
     # Start logging both in the terminal and the log file.
     init_logger()
+
+    # init email sender for notifications
+    email_sender = init_sender()
+    # email_sender.send_exception()
 
     # read environment variables from .env file
     env_path = Path(__file__).resolve().parents[1] / "config" / ".env"
