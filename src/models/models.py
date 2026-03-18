@@ -29,18 +29,18 @@ class SFTPConfig:
     remote_path: str = "/REPORTS"
 
 
-@dataclass
-class MoverConfig:
-    """
-    Mover configuration.
+# @dataclass
+# class MoverConfig:
+#     """
+#     Mover configuration.
 
-    Attributes:
-        working_dir (Path): Directory where files were initially downloaded.
-        sent_dir (Path): Directory where processed files are moved after handling.
-        path_to_gcs_credentials (str): Path to Google Cloud Storage credentials file.
-        bucket_name (str): Name of the Google Cloud Storage bucket to upload files to.
-    """
-    working_dir: Path
-    sent_dir: Path
-    path_to_gcs_credentials: str
-    bucket_name: str  # Default bucket name, can be overridden
+#     Attributes:
+#         working_dir (Path): Directory where files were initially downloaded.
+#         sent_dir (Path): Directory where processed files are moved after handling.
+#         path_to_gcs_credentials (str): Path to Google Cloud Storage credentials file.
+#         bucket_name (str): Name of the Google Cloud Storage bucket to upload files to.
+#     """
+#     working_dir: Path
+#     sent_dir: Path
+#     path_to_gcs_credentials: str
+#     bucket_name: str  # Default bucket name, can be overridden
