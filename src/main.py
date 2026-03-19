@@ -127,7 +127,10 @@ def fetch_and_move(
         f"> > > > > FETCHER task started for {bip_name} < < < < <")
 
     try:
-        Fetcher(config=sftp_conf).fetch_files()
+        Fetcher(
+            config=sftp_conf,
+            email_sender=email_sender
+        ).fetch_files()
 
     except SystemExit as e:
         error_msg = f"SystemExit occurred while running Fetcher for {bip_name}: {e}"
