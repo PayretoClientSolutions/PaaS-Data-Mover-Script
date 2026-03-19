@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import List
+
+from infisical_sdk import InfisicalSDKClient
 
 
 @dataclass
@@ -60,18 +61,19 @@ class EmailConfig:
     app_name: str = ""
 
 
-# @dataclass
-# class MoverConfig:
-#     """
-#     Mover configuration.
+@dataclass
+class InfisicalConfig:
+    """
+    Configuration for Infisical SDK client.
 
-#     Attributes:
-#         working_dir (Path): Directory where files were initially downloaded.
-#         sent_dir (Path): Directory where processed files are moved after handling.
-#         path_to_gcs_credentials (str): Path to Google Cloud Storage credentials file.
-#         bucket_name (str): Name of the Google Cloud Storage bucket to upload files to.
-#     """
-#     working_dir: Path
-#     sent_dir: Path
-#     path_to_gcs_credentials: str
-#     bucket_name: str  # Default bucket name, can be overridden
+    Attributes:
+        client (InfisicalSDKClient): An instance of the InfisicalSDKClient configured with the host and token.
+        project_id (str): The Infisical project ID.
+        project_slug (str): The Infisical project slug.
+        environment_slug (str): The Infisical environment slug (e.g., "dev")
+    """
+
+    client: InfisicalSDKClient
+    project_id: str
+    project_slug: str
+    environment_slug: str

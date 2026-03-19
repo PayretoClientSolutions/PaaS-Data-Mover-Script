@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -7,7 +8,7 @@ from infisical_sdk import InfisicalSDKClient
 
 from fetcher import Fetcher
 from models import SFTPConfig
-from models.models import EmailConfig
+from models.models import EmailConfig, InfisicalConfig
 from sender import Sender
 
 # from mover import Mover
@@ -48,6 +49,42 @@ def init_sender() -> Sender:
     )
 
     return Sender(config=email_cfg)
+
+
+def init_infisical_client() -> InfisicalConfig:
+    """
+    Initializes the Infisical SDK client for fetching secrets.
+    Returns:
+        InfisicalConfig: An instance of the InfisicalConfig configured with the necessary parameters.
+    """
+
+    # read environment variables from .env file
+    env_path = Path(__file__).resolve().parents[1] / "config" / ".env"
+    if not env_path.exists():
+        logging.error(f"Environment file not found at: {env_path}")
+        sys.exit(1)
+
+    load_dotenv(env_path)
+
+    try:
+        logging.info("Fetching secrets from Infisical...")
+        client = InfisicalSDKClient(
+            host="https://eu.infisical.com", token=os.environ.get("INFISICAL_TOKEN", "")
+        )
+
+        project_id = os.environ.get("INFISICAL_PROJECT_ID", "")
+        project_slug = os.environ.get("INFIISCAL_PROJECT_SLUG", "")
+        environment_slug = os.environ.get("INFISICAL_ENVIRONMENT", "dev")
+
+        return InfisicalConfig(
+            client=client,
+            project_id=project_id,
+            project_slug=project_slug,
+            environment_slug=environment_slug,
+        )
+    except Exception as e:
+        logging.error(f"Error initializing Infisical client: {e}")
+        raise
 
 
 def fetch_and_move(
@@ -96,32 +133,24 @@ def fetch_and_move(
 def main() -> None:
     # Start logging both in the terminal and the log file.
     init_logger()
+    logging.info("Script started.")
+
+    # init infisical client for fetching secrets
+    infisical_config = init_infisical_client()
+    client = infisical_config.client
+    project_id = infisical_config.project_id
+    project_slug = infisical_config.project_slug
+    environment_slug = infisical_config.environment_slug
 
     # init email sender for notifications
-    email_sender = init_sender()
-    # email_sender.send_exception()
-
-    # read environment variables from .env file
-    env_path = Path(__file__).resolve().parents[1] / "config" / ".env"
-    if not env_path.exists():
-        logging.error(f"Environment file not found at: {env_path}")
-        return
-
-    load_dotenv(env_path)
+    # email_sender = init_sender()
+    # email_sender.send_email()
 
     # init path to gcs credentials file
     path_to_gcs_file = Path(__file__).parents[1] / "config" / "gcs.json"
 
+    # fetch all secrets per BIP
     try:
-        logging.info("Fetching secrets from Infisical...")
-        client = InfisicalSDKClient(
-            host="https://eu.infisical.com", token=os.environ.get("INFISICAL_TOKEN", "")
-        )
-
-        project_id = os.environ.get("INFISICAL_PROJECT_ID", "")
-        project_slug = os.environ.get("INFIISCAL_PROJECT_SLUG", "")
-        environment_slug = os.environ.get("INFISICAL_ENVIRONMENT", "dev")
-
         # fetch secrets for PRTPE_TEST
         sc_prtpe_test = client.secrets.list_secrets(
             project_id=project_id,
@@ -202,12 +231,12 @@ def main() -> None:
         logging.error(f"Error fetching secrets from Infisical: {e}")
         return
 
-    # # PRTPE_TEST
-    # fetch_and_move(
-    #     bip_name="PRTPE_TEST",
-    #     sc_dct=sc_dct_prtpe_test,
-    #     path_to_gcs_file=path_to_gcs_file,
-    # )
+    # PRTPE_TEST
+    fetch_and_move(
+        bip_name="PRTPE_TEST",
+        sc_dct=sc_dct_prtpe_test,
+        path_to_gcs_file=path_to_gcs_file,
+    )
 
     # # PRTSO_TEST
     # fetch_and_move(
@@ -230,33 +259,33 @@ def main() -> None:
     #     path_to_gcs_file=path_to_gcs_file,
     # )
 
-    # PRTPE
-    fetch_and_move(
-        bip_name="PRTPE",
-        sc_dct=sc_dct_prtpe,
-        path_to_gcs_file=path_to_gcs_file,
-    )
+    # # PRTPE
+    # fetch_and_move(
+    #     bip_name="PRTPE",
+    #     sc_dct=sc_dct_prtpe,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
 
-    # PRTSO
-    fetch_and_move(
-        bip_name="PRTSO",
-        sc_dct=sc_dct_prtso,
-        path_to_gcs_file=path_to_gcs_file,
-    )
+    # # PRTSO
+    # fetch_and_move(
+    #     bip_name="PRTSO",
+    #     sc_dct=sc_dct_prtso,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
 
-    # SOLID
-    fetch_and_move(
-        bip_name="SOLID",
-        sc_dct=sc_dct_solid,
-        path_to_gcs_file=path_to_gcs_file,
-    )
+    # # SOLID
+    # fetch_and_move(
+    #     bip_name="SOLID",
+    #     sc_dct=sc_dct_solid,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
 
-    # BIGE
-    fetch_and_move(
-        bip_name="BIGE",
-        sc_dct=sc_dct_bige,
-        path_to_gcs_file=path_to_gcs_file,
-    )
+    # # BIGE
+    # fetch_and_move(
+    #     bip_name="BIGE",
+    #     sc_dct=sc_dct_bige,
+    #     path_to_gcs_file=path_to_gcs_file,
+    # )
 
 
 if __name__ == "__main__":
