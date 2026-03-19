@@ -1,6 +1,7 @@
 import logging
 import mimetypes
 import smtplib
+import ssl
 import traceback
 from email.message import EmailMessage
 from pathlib import Path
@@ -37,21 +38,33 @@ class Sender:
         self.config = config
 
     def _connect(self) -> smtplib.SMTP:
+        host = (self.config.host or "").strip()
+        if not host or host.startswith("."):
+            raise ValueError(
+                "Invalid SMTP host. It cannot be empty or start with a dot.")
+        port = int(self.config.port) if self.config.port else 0
+        if port <= 0:
+            raise ValueError(
+                "SMTP port is invalid or not set. Check your 'PORT' setting.")
         if self.config.use_ssl:
             server: smtplib.SMTP = smtplib.SMTP_SSL(
-                self.config.host, self.config.port, timeout=30)
+                host, port, timeout=30)
         else:
-            server = smtplib.SMTP(
-                self.config.host, self.config.port, timeout=30)
-        server.ehlo()
-        if not self.config.use_ssl and self.config.use_tls:
-            try:
-                server.starttls()
+            server = smtplib.SMTP(host, port, timeout=30)
+        try:
+            server.ehlo()
+            if not self.config.use_ssl and self.config.use_tls:
+                if not server.has_extn("starttls"):
+                    raise RuntimeError(
+                        "SMTP server does not advertise STARTTLS but USE_TLS=True")
+                tls_ctx = ssl.create_default_context()
+                server.starttls(context=tls_ctx)
                 server.ehlo()
-            except Exception as e:
-                logger.warning(f"STARTTLS failed or not supported: {e}")
-        if self.config.username and self.config.password:
-            server.login(self.config.username, self.config.password)
+            if self.config.username and self.config.password:
+                server.login(self.config.username, self.config.password)
+        except Exception:
+            server.close()
+            raise
         return server
 
     def _format_subject(self, subject: str) -> str:
@@ -61,7 +74,10 @@ class Sender:
         return subject
 
     def _ensure_recipients(self, to_addrs: Optional[Iterable[str]]) -> list[str]:
-        recipients = list(to_addrs or self.config.to_addrs)
+        recipients = [
+            r.strip() for r in (to_addrs or self.config.to_addrs)
+            if r and str(r).strip()
+        ]
         if not recipients:
             raise ValueError("No recipients provided (to_addrs is empty).")
         return recipients
@@ -139,7 +155,8 @@ class Sender:
         app = self.config.app_name or "Application"
         exc_name = type(exc).__name__
         subject = f"{app} error: {exc_name}"
-        tb = traceback.format_exc() or "(no traceback available)"
+        tb = "".join(traceback.format_exception(type(exc), exc,
+                     exc.__traceback__)) or "(no traceback available)"
 
         lines = [
             f"An exception occurred in {app}:",
