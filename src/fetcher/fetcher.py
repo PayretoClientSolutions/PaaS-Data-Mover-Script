@@ -8,11 +8,13 @@ import paramiko
 from google.cloud import storage
 
 from models import SFTPConfig
+from sender import Sender
 
 
 class Fetcher:
-    def __init__(self, config: SFTPConfig) -> None:
+    def __init__(self, config: SFTPConfig, email_sender: Sender) -> None:
         self.hostname = config.hostname
+        self.email_sender = email_sender
         self.port = config.port
         self.username = config.username
         self.password = config.password
@@ -29,13 +31,21 @@ class Fetcher:
         try:
             self.gcs_client = storage.Client()
         except Exception as e:
-            logging.error(f"Error initializing GCS client: {e}")
+            error_msg = f"Failed to initialize Google Cloud Storage client: {e}"
+            logging.error(error_msg)
+            self.email_sender.send(
+                subject=" - Error Notification",
+                body=error_msg
+            )
             sys.exit(1)
 
         logging.info(f"Checking if local_path exists: {self.local_path}")
         if not os.path.exists(self.local_path):
-            logging.fatal(
-                f"Required directory '{self.local_path}' does not exist. Exiting..."
+            error_msg = f"Required directory '{self.local_path}' does not exist."
+            logging.fatal(error_msg)
+            self.email_sender.send(
+                subject=" - Error Notification",
+                body=error_msg
             )
             sys.exit(1)
 
@@ -97,7 +107,12 @@ class Fetcher:
                     logging.info(f"Successfully loaded {key_class.__name__}")
                     break
                 except paramiko.SSHException as e:
-                    logging.error(f"SSHException occurred: {e}")
+                    error_msg = f"SSHException occurred: {e}"
+                    logging.error(error_msg)
+                    self.email_sender.send(
+                        subject=" - Error Notification",
+                        body=error_msg
+                    )
                     continue
                 except Exception as e:
                     key_load_error = e
@@ -108,6 +123,10 @@ class Fetcher:
                 if key_load_error:
                     error_msg += f": {key_load_error}"
                 logging.fatal(error_msg)
+                self.email_sender.send(
+                    subject=" - Error Notification",
+                    body=error_msg
+                )
                 return
 
             SSH_Client.connect(
@@ -120,7 +139,12 @@ class Fetcher:
                 timeout=30
             )
         except Exception as e:
-            logging.fatal(f"Failed to connect to {self.hostname}: {e}")
+            error_msg = f"Failed to connect to {self.hostname}: {e}"
+            logging.fatal(error_msg)
+            self.email_sender.send(
+                subject=" - Error Notification",
+                body=error_msg
+            )
             return
 
         # open SFTP session
@@ -248,5 +272,10 @@ class Fetcher:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to upload file {file_path.name}: {e}")
+            error_msg = f"Failed to upload file {file_path.name}: {e}"
+            logging.error(error_msg)
+            self.email_sender.send(
+                subject=" - Error Notification",
+                body=error_msg
+            )
             return False

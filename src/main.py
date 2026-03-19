@@ -1,5 +1,7 @@
+import json
 import logging
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -7,8 +9,8 @@ from infisical_sdk import InfisicalSDKClient
 
 from fetcher import Fetcher
 from models import SFTPConfig
-
-# from mover import Mover
+from models.models import EmailConfig, InfisicalConfig
+from sender import Sender
 
 
 def init_logger() -> None:
@@ -25,10 +27,80 @@ def init_logger() -> None:
     )
 
 
+def init_sender(
+        host: str,
+        port: int,
+        username: str,
+        password: str,
+        from_addr: str,
+        to_addrs: list[str],
+        use_tls: bool,
+        use_ssl: bool,
+        subject_prefix: str,
+        app_name: str,
+) -> Sender:
+    """
+    Initializes the Sender class for email notifications.
+    Returns:
+        Sender: An instance of the Sender class configured with SMTP settings.
+    """
+    email_cfg = EmailConfig(
+        host=host,
+        port=port,
+        username=username,
+        password=password,
+        from_addr=from_addr,
+        to_addrs=to_addrs,
+        use_tls=use_tls,
+        use_ssl=use_ssl,
+        subject_prefix=subject_prefix,
+        app_name=app_name,
+    )
+
+    return Sender(config=email_cfg)
+
+
+def init_infisical_client() -> InfisicalConfig:
+    """
+    Initializes the Infisical SDK client for fetching secrets.
+    Returns:
+        InfisicalConfig: An instance of the InfisicalConfig configured with the necessary parameters.
+    """
+
+    # read environment variables from .env file
+    env_path = Path(__file__).resolve().parents[1] / "config" / ".env"
+    if not env_path.exists():
+        logging.error(f"Environment file not found at: {env_path}")
+        sys.exit(1)
+
+    load_dotenv(env_path)
+
+    try:
+        logging.info("Fetching secrets from Infisical...")
+        client = InfisicalSDKClient(
+            host="https://eu.infisical.com", token=os.environ.get("INFISICAL_TOKEN", "")
+        )
+
+        project_id = os.environ.get("INFISICAL_PROJECT_ID", "")
+        project_slug = os.environ.get("INFIISCAL_PROJECT_SLUG", "")
+        environment_slug = os.environ.get("INFISICAL_ENVIRONMENT", "dev")
+
+        return InfisicalConfig(
+            client=client,
+            project_id=project_id,
+            project_slug=project_slug,
+            environment_slug=environment_slug,
+        )
+    except Exception as e:
+        logging.error(f"Error initializing Infisical client: {e}")
+        raise
+
+
 def fetch_and_move(
     bip_name: str,
     sc_dct: dict[str, str],
     path_to_gcs_file: Path,
+    email_sender: Sender,
 ) -> None:
     """
     Fetches files via SFTP and moves them to GCS.
@@ -55,44 +127,78 @@ def fetch_and_move(
         f"> > > > > FETCHER task started for {bip_name} < < < < <")
 
     try:
-        Fetcher(config=sftp_conf).fetch_files()
+        Fetcher(
+            config=sftp_conf,
+            email_sender=email_sender
+        ).fetch_files()
 
     except SystemExit as e:
-        logging.error(
-            f"SystemExit occurred while running Fetcher for {bip_name}: {e}")
+        error_msg = f"SystemExit occurred while running Fetcher for {bip_name}: {e}"
+        logging.error(error_msg)
+        email_sender.send(
+            subject=" - SystemExit Notification",
+            body=error_msg,
+        )
         return
 
     except Exception as e:
-        logging.error(
-            f"Error occurred while running Fetcher for {bip_name}: {e}")
+        error_msg = f"Error occurred while running Fetcher for {bip_name}: {e}"
+        logging.error(error_msg)
+        email_sender.send(
+            subject=" - Error Notification",
+            body=error_msg,
+        )
         return
 
 
 def main() -> None:
     # Start logging both in the terminal and the log file.
     init_logger()
+    logging.info("Script started.")
 
-    # read environment variables from .env file
-    env_path = Path(__file__).resolve().parents[1] / "config" / ".env"
-    if not env_path.exists():
-        logging.error(f"Environment file not found at: {env_path}")
-        return
+    # init infisical client for fetching secrets
+    infisical_config = init_infisical_client()
+    client = infisical_config.client
+    project_id = infisical_config.project_id
+    project_slug = infisical_config.project_slug
+    environment_slug = infisical_config.environment_slug
 
-    load_dotenv(env_path)
+    # fetch secrets for email sender
+    sc_email = client.secrets.list_secrets(
+        project_id=project_id,
+        project_slug=project_slug,
+        environment_slug=environment_slug,
+        secret_path="/SMTP",
+    ).secrets
+    sc_dct_email = {
+        sc.secretKey: sc.secretValue for sc in sc_email}
+
+    try:
+        email_sender = init_sender(
+            host="smtp.gmail.com",
+            port=587,
+            username=sc_dct_email.get("USERNAME", ""),
+            password=sc_dct_email.get("PASSWORD", ""),
+            from_addr=sc_dct_email.get("FROM_ADDR", ""),
+            to_addrs=sc_dct_email.get("TO_ADDRS", "").split(","),
+            use_tls=True,
+            use_ssl=False,
+            subject_prefix=sc_dct_email.get("SUBJECT_PREFIX", ""),
+            app_name=sc_dct_email.get("APP_NAME", ""),
+        )
+
+        # email_sender.send(
+        #     subject=" - Startup Notification",
+        #     body="Script started!",
+        # )
+    except Exception as e:
+        logging.error(f"Error initializing email sender: {e}")
 
     # init path to gcs credentials file
     path_to_gcs_file = Path(__file__).parents[1] / "config" / "gcs.json"
 
+    # fetch all secrets per BIP
     try:
-        logging.info("Fetching secrets from Infisical...")
-        client = InfisicalSDKClient(
-            host="https://eu.infisical.com", token=os.environ.get("INFISICAL_TOKEN", "")
-        )
-
-        project_id = os.environ.get("INFISICAL_PROJECT_ID", "")
-        project_slug = os.environ.get("INFIISCAL_PROJECT_SLUG", "")
-        environment_slug = os.environ.get("INFISICAL_ENVIRONMENT", "dev")
-
         # fetch secrets for PRTPE_TEST
         sc_prtpe_test = client.secrets.list_secrets(
             project_id=project_id,
@@ -170,7 +276,12 @@ def main() -> None:
         sc_dct_bige = {sc.secretKey: sc.secretValue for sc in sc_bige}
 
     except Exception as e:
-        logging.error(f"Error fetching secrets from Infisical: {e}")
+        error_msg = f"Error fetching secrets from Infisical: {e}"
+        logging.error(error_msg)
+        email_sender.send(
+            subject=" - Error Notification",
+            body=error_msg,
+        )
         return
 
     # # PRTPE_TEST
@@ -178,6 +289,7 @@ def main() -> None:
     #     bip_name="PRTPE_TEST",
     #     sc_dct=sc_dct_prtpe_test,
     #     path_to_gcs_file=path_to_gcs_file,
+    #     email_sender=email_sender,
     # )
 
     # # PRTSO_TEST
@@ -185,6 +297,7 @@ def main() -> None:
     #     bip_name="PRTSO_TEST",
     #     sc_dct=sc_dct_prtso_test,
     #     path_to_gcs_file=path_to_gcs_file,
+    #     email_sender=email_sender,
     # )
 
     # # SOLID_TEST
@@ -192,6 +305,7 @@ def main() -> None:
     #     bip_name="SOLID_TEST",
     #     sc_dct=sc_dct_solid_test,
     #     path_to_gcs_file=path_to_gcs_file,
+    #     email_sender=email_sender,
     # )
 
     # # BIGE_TEST
@@ -199,6 +313,7 @@ def main() -> None:
     #     bip_name="BIGE_TEST",
     #     sc_dct=sc_dct_bige_test,
     #     path_to_gcs_file=path_to_gcs_file,
+    #     email_sender=email_sender,
     # )
 
     # PRTPE
@@ -206,6 +321,7 @@ def main() -> None:
         bip_name="PRTPE",
         sc_dct=sc_dct_prtpe,
         path_to_gcs_file=path_to_gcs_file,
+        email_sender=email_sender,
     )
 
     # PRTSO
@@ -213,6 +329,7 @@ def main() -> None:
         bip_name="PRTSO",
         sc_dct=sc_dct_prtso,
         path_to_gcs_file=path_to_gcs_file,
+        email_sender=email_sender,
     )
 
     # SOLID
@@ -220,6 +337,7 @@ def main() -> None:
         bip_name="SOLID",
         sc_dct=sc_dct_solid,
         path_to_gcs_file=path_to_gcs_file,
+        email_sender=email_sender,
     )
 
     # BIGE
@@ -227,6 +345,7 @@ def main() -> None:
         bip_name="BIGE",
         sc_dct=sc_dct_bige,
         path_to_gcs_file=path_to_gcs_file,
+        email_sender=email_sender,
     )
 
 

@@ -1,0 +1,177 @@
+import logging
+import mimetypes
+import smtplib
+import ssl
+import traceback
+from email.message import EmailMessage
+from pathlib import Path
+from typing import Iterable, Optional
+
+from models import EmailConfig
+
+logger = logging.getLogger(__name__)
+
+
+class Sender:
+    """
+    SMTP email sender for error notifications and general messages.
+
+    Usage example:
+        from models import EmailConfig
+        from sender import Sender
+
+        cfg = EmailConfig(
+            host="smtp.example.com",
+            port=587,
+            username="user",
+            password="pass",
+            from_addr="noreply@example.com",
+            to_addrs=["ops@example.com"],
+            use_tls=True,
+            subject_prefix="[PaaS-Data-Mover]",
+            app_name="PaaS-Data-Mover",
+        )
+        Sender(cfg).send_exception(e, context={"bip": bip_name})
+    """
+
+    def __init__(self, config: EmailConfig):
+        self.config = config
+
+    def _connect(self) -> smtplib.SMTP:
+        host = (self.config.host or "").strip()
+        if not host or host.startswith("."):
+            raise ValueError(
+                "Invalid SMTP host. It cannot be empty or start with a dot.")
+        port = int(self.config.port) if self.config.port else 0
+        if port <= 0:
+            raise ValueError(
+                "SMTP port is invalid or not set. Check your 'PORT' setting.")
+        if self.config.use_ssl:
+            server: smtplib.SMTP = smtplib.SMTP_SSL(
+                host, port, timeout=30)
+        else:
+            server = smtplib.SMTP(host, port, timeout=30)
+        try:
+            server.ehlo()
+            if not self.config.use_ssl and self.config.use_tls:
+                if not server.has_extn("starttls"):
+                    raise RuntimeError(
+                        "SMTP server does not advertise STARTTLS but USE_TLS=True")
+                tls_ctx = ssl.create_default_context()
+                server.starttls(context=tls_ctx)
+                server.ehlo()
+            if self.config.username and self.config.password:
+                server.login(self.config.username, self.config.password)
+        except Exception:
+            server.close()
+            raise
+        return server
+
+    def _format_subject(self, subject: str) -> str:
+        prefix = (self.config.subject_prefix or "").strip()
+        if prefix and not subject.startswith(prefix):
+            return f"{prefix} {subject}"
+        return subject
+
+    def _ensure_recipients(self, to_addrs: Optional[Iterable[str]]) -> list[str]:
+        recipients = [
+            r.strip() for r in (to_addrs or self.config.to_addrs)
+            if r and str(r).strip()
+        ]
+        if not recipients:
+            raise ValueError("No recipients provided (to_addrs is empty).")
+        return recipients
+
+    def send(
+        self,
+        subject: str,
+        body: str,
+        html: Optional[str] = None,
+        to_addrs: Optional[Iterable[str]] = None,
+        attachments: Optional[Iterable[Path]] = None,
+    ) -> None:
+        """
+        Send an email message.
+
+        Args:
+            subject: Email subject line.
+            body: Plain text body content.
+            html: Optional HTML body alternative.
+            to_addrs: Optional override for recipients; defaults to config.to_addrs.
+            attachments: Optional iterable of file Paths to attach.
+        """
+        recipients = self._ensure_recipients(to_addrs)
+
+        msg = EmailMessage()
+        msg["From"] = self.config.from_addr
+        msg["To"] = ", ".join(recipients)
+        msg["Subject"] = self._format_subject(subject)
+
+        if html:
+            msg.set_content(body)
+            msg.add_alternative(html, subtype="html")
+        else:
+            msg.set_content(body)
+
+        for path in attachments or []:
+            try:
+                ctype, encoding = mimetypes.guess_type(str(path))
+                if ctype is None or encoding is not None:
+                    ctype = "application/octet-stream"
+                maintype, subtype = ctype.split("/", 1)
+                with open(path, "rb") as fp:
+                    data = fp.read()
+                msg.add_attachment(
+                    data,
+                    maintype=maintype,
+                    subtype=subtype,
+                    filename=Path(path).name
+                )
+            except Exception as e:
+                logger.warning(f"Failed to attach file {path}: {e}")
+
+        try:
+            with self._connect() as server:
+                server.send_message(msg)
+                logger.info(f"Email sent to {recipients}")
+        except Exception as e:
+            logger.error(f"Failed to send email: {e}")
+            raise
+
+    def send_exception(
+        self,
+        exc: BaseException,
+        context: Optional[dict] = None,
+        to_addrs: Optional[Iterable[str]] = None,
+    ) -> None:
+        """
+        Convenience method to send a formatted exception email with traceback.
+
+        Args:
+            exc: The exception instance to report.
+            context: Optional dictionary with extra context to include.
+            to_addrs: Optional override for recipients.
+        """
+        app = self.config.app_name or "Application"
+        exc_name = type(exc).__name__
+        subject = f"{app} error: {exc_name}"
+        tb = "".join(traceback.format_exception(type(exc), exc,
+                     exc.__traceback__)) or "(no traceback available)"
+
+        lines = [
+            f"An exception occurred in {app}:",
+            "",
+            f"Type: {exc_name}",
+            f"Message: {exc}",
+            "",
+            "Traceback:",
+            tb,
+        ]
+
+        if context:
+            lines.extend(["", "Context:"])
+            for k, v in context.items():
+                lines.append(f"- {k}: {v}")
+
+        body = "\n".join(lines)
+        self.send(subject=subject, body=body, to_addrs=to_addrs)

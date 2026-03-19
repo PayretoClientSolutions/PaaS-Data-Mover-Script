@@ -1,5 +1,7 @@
-from dataclasses import dataclass
-from pathlib import Path
+from dataclasses import dataclass, field
+from typing import List
+
+from infisical_sdk import InfisicalSDKClient
 
 
 @dataclass
@@ -30,17 +32,48 @@ class SFTPConfig:
 
 
 @dataclass
-class MoverConfig:
+class EmailConfig:
     """
-    Mover configuration.
+    Configuration for SMTP email sending.
 
     Attributes:
-        working_dir (Path): Directory where files were initially downloaded.
-        sent_dir (Path): Directory where processed files are moved after handling.
-        path_to_gcs_credentials (str): Path to Google Cloud Storage credentials file.
-        bucket_name (str): Name of the Google Cloud Storage bucket to upload files to.
+        host (str): SMTP server hostname.
+        port (int): SMTP server port (e.g., 587 for STARTTLS, 465 for SSL).
+        username (str): SMTP username (optional if server allows anonymous or IP-based relaying).
+        password (str): SMTP password (optional).
+        from_addr (str): The sender email address (From header).
+        to_addrs (List[str]): List of recipient email addresses.
+        use_tls (bool): Use STARTTLS after connecting (default: True).
+        use_ssl (bool): Use implicit SSL (SMTPS) (default: False). If True, STARTTLS is ignored.
+        subject_prefix (str): Optional subject prefix for all messages (e.g., "[PaaS-Data-Mover]").
+        app_name (str): Optional application name used in default subjects for exception emails.
     """
-    working_dir: Path
-    sent_dir: Path
-    path_to_gcs_credentials: str
-    bucket_name: str  # Default bucket name, can be overridden
+
+    host: str
+    port: int
+    username: str | None = None
+    password: str | None = None
+    from_addr: str = ""
+    to_addrs: List[str] = field(default_factory=list)
+    use_tls: bool = True
+    use_ssl: bool = False
+    subject_prefix: str = ""
+    app_name: str = ""
+
+
+@dataclass
+class InfisicalConfig:
+    """
+    Configuration for Infisical SDK client.
+
+    Attributes:
+        client (InfisicalSDKClient): An instance of the InfisicalSDKClient configured with the host and token.
+        project_id (str): The Infisical project ID.
+        project_slug (str): The Infisical project slug.
+        environment_slug (str): The Infisical environment slug (e.g., "dev")
+    """
+
+    client: InfisicalSDKClient
+    project_id: str
+    project_slug: str
+    environment_slug: str
