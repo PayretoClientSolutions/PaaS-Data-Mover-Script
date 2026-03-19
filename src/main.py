@@ -284,13 +284,13 @@ def main() -> None:
         )
         return
 
-    # PRTPE_TEST
-    fetch_and_move(
-        bip_name="PRTPE_TEST",
-        sc_dct=sc_dct_prtpe_test,
-        path_to_gcs_file=path_to_gcs_file,
-        email_sender=email_sender,
-    )
+    # # PRTPE_TEST
+    # fetch_and_move(
+    #     bip_name="PRTPE_TEST",
+    #     sc_dct=sc_dct_prtpe_test,
+    #     path_to_gcs_file=path_to_gcs_file,
+    #     email_sender=email_sender,
+    # )
 
     # # PRTSO_TEST
     # fetch_and_move(
@@ -316,37 +316,37 @@ def main() -> None:
     #     email_sender=email_sender,
     # )
 
-    # # PRTPE
-    # fetch_and_move(
-    #     bip_name="PRTPE",
-    #     sc_dct=sc_dct_prtpe,
-    #     path_to_gcs_file=path_to_gcs_file,
-    #     email_sender=email_sender,
-    # )
+    # PRTPE
+    fetch_and_move(
+        bip_name="PRTPE",
+        sc_dct=sc_dct_prtpe,
+        path_to_gcs_file=path_to_gcs_file,
+        email_sender=email_sender,
+    )
 
-    # # PRTSO
-    # fetch_and_move(
-    #     bip_name="PRTSO",
-    #     sc_dct=sc_dct_prtso,
-    #     path_to_gcs_file=path_to_gcs_file,
-    #     email_sender=email_sender,
-    # )
+    # PRTSO
+    fetch_and_move(
+        bip_name="PRTSO",
+        sc_dct=sc_dct_prtso,
+        path_to_gcs_file=path_to_gcs_file,
+        email_sender=email_sender,
+    )
 
-    # # SOLID
-    # fetch_and_move(
-    #     bip_name="SOLID",
-    #     sc_dct=sc_dct_solid,
-    #     path_to_gcs_file=path_to_gcs_file,
-    #     email_sender=email_sender,
-    # )
+    # SOLID
+    fetch_and_move(
+        bip_name="SOLID",
+        sc_dct=sc_dct_solid,
+        path_to_gcs_file=path_to_gcs_file,
+        email_sender=email_sender,
+    )
 
-    # # BIGE
-    # fetch_and_move(
-    #     bip_name="BIGE",
-    #     sc_dct=sc_dct_bige,
-    #     path_to_gcs_file=path_to_gcs_file,
-    #     email_sender=email_sender,
-    # )
+    # BIGE
+    fetch_and_move(
+        bip_name="BIGE",
+        sc_dct=sc_dct_bige,
+        path_to_gcs_file=path_to_gcs_file,
+        email_sender=email_sender,
+    )
 
 
 if __name__ == "__main__":
