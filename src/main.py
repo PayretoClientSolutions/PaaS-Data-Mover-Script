@@ -186,6 +186,11 @@ def main() -> None:
             subject_prefix=sc_dct_email.get("SUBJECT_PREFIX", ""),
             app_name=sc_dct_email.get("APP_NAME", ""),
         )
+
+        email_sender.send(
+            subject=" - Startup Notification",
+            body="Script started!",
+        )
     except Exception as e:
         logging.error(f"Error initializing email sender: {e}")
 
