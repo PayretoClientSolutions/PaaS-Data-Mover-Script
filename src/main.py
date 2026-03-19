@@ -11,8 +11,6 @@ from models import SFTPConfig
 from models.models import EmailConfig, InfisicalConfig
 from sender import Sender
 
-# from mover import Mover
-
 
 def init_logger() -> None:
     """
