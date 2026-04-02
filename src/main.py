@@ -82,7 +82,7 @@ def init_infisical_client() -> InfisicalConfig:
         )
 
         project_id = os.environ.get("INFISICAL_PROJECT_ID", "")
-        project_slug = os.environ.get("INFIISCAL_PROJECT_SLUG", "")
+        project_slug = os.environ.get("INFISCAL_PROJECT_SLUG", "")
         environment_slug = os.environ.get("INFISICAL_ENVIRONMENT", "dev")
 
         return InfisicalConfig(
