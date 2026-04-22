@@ -41,7 +41,7 @@ Used to bootstrap Infisical. Typical variables (names must match what `src/main.
 
 - `INFISICAL_TOKEN`
 - `INFISICAL_PROJECT_ID`
-- `INFISCAL_PROJECT_SLUG` — project slug (spelling matches the application code)
+- `INFISICAL_PROJECT_SLUG` — project slug
 - `INFISICAL_ENVIRONMENT` — defaults to `dev` if unset
 
 ### Infisical: `/SMTP`
