@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import sys
@@ -11,6 +10,18 @@ from fetcher import Fetcher
 from models import SFTPConfig
 from models.models import EmailConfig, InfisicalConfig
 from sender import Sender
+
+# BIP label (for logs / email) and Infisical secret_path. Order is run order.
+BIP_JOBS: list[tuple[str, str]] = [
+    # ("PRTPE_TEST", "/prtpe_test"),
+    # ("PRTSO_TEST", "/prtso_test"),
+    # ("SOLID_TEST", "/solid_test"),
+    # ("BIGE_TEST", "/bige_test"),
+    ("PRTPE", "/prtpe"),
+    ("PRTSO", "/prtso"),
+    ("SOLID", "/solid"),
+    ("BIGE", "/bige"),
+]
 
 
 def init_logger() -> None:
@@ -82,7 +93,7 @@ def init_infisical_client() -> InfisicalConfig:
         )
 
         project_id = os.environ.get("INFISICAL_PROJECT_ID", "")
-        project_slug = os.environ.get("INFIISCAL_PROJECT_SLUG", "")
+        project_slug = os.environ.get("INFISICAL_PROJECT_SLUG", "")
         environment_slug = os.environ.get("INFISICAL_ENVIRONMENT", "dev")
 
         return InfisicalConfig(
@@ -94,6 +105,28 @@ def init_infisical_client() -> InfisicalConfig:
     except Exception as e:
         logging.error(f"Error initializing Infisical client: {e}")
         raise
+
+
+def _secrets_dict_at_path(
+    client: InfisicalSDKClient,
+    *,
+    project_id: str,
+    project_slug: str,
+    environment_slug: str,
+    secret_path: str,
+) -> dict[str, str]:
+    """
+    Fetches secrets from Infisical at a given path.
+    Returns:
+        dict[str, str]: A dictionary of secrets with the secret key as the key and the secret value as the value.
+    """
+    rows = client.secrets.list_secrets(
+        project_id=project_id,
+        project_slug=project_slug,
+        environment_slug=environment_slug,
+        secret_path=secret_path,
+    ).secrets
+    return {row.secretKey: row.secretValue for row in rows}
 
 
 def fetch_and_move(
@@ -129,7 +162,8 @@ def fetch_and_move(
     try:
         Fetcher(
             config=sftp_conf,
-            email_sender=email_sender
+            email_sender=email_sender,
+            bip_name=bip_name,
         ).fetch_files()
 
     except SystemExit as e:
@@ -193,88 +227,22 @@ def main() -> None:
         # )
     except Exception as e:
         logging.error(f"Error initializing email sender: {e}")
+        sys.exit(1)
 
     # init path to gcs credentials file
     path_to_gcs_file = Path(__file__).parents[1] / "config" / "gcs.json"
 
-    # fetch all secrets per BIP
     try:
-        # fetch secrets for PRTPE_TEST
-        sc_prtpe_test = client.secrets.list_secrets(
-            project_id=project_id,
-            project_slug=project_slug,
-            environment_slug=environment_slug,
-            secret_path="/prtpe_test",
-        ).secrets
-        sc_dct_prtpe_test = {
-            sc.secretKey: sc.secretValue for sc in sc_prtpe_test}
-
-        # fetch secrets for PRTSO_TEST
-        sc_prtso_test = client.secrets.list_secrets(
-            project_id=project_id,
-            project_slug=project_slug,
-            environment_slug=environment_slug,
-            secret_path="/prtso_test",
-        ).secrets
-        sc_dct_prtso_test = {
-            sc.secretKey: sc.secretValue for sc in sc_prtso_test}
-
-        # fetch secrets for SOLID_TEST
-        sc_solid_test = client.secrets.list_secrets(
-            project_id=project_id,
-            project_slug=project_slug,
-            environment_slug=environment_slug,
-            secret_path="/solid_test",
-        ).secrets
-        sc_dct_solid_test = {
-            sc.secretKey: sc.secretValue for sc in sc_solid_test}
-
-        # fetch secrets for BIGE_TEST
-        sc_bige_test = client.secrets.list_secrets(
-            project_id=project_id,
-            project_slug=project_slug,
-            environment_slug=environment_slug,
-            secret_path="/bige_test",
-        ).secrets
-        sc_dct_bige_test = {
-            sc.secretKey: sc.secretValue for sc in sc_bige_test}
-
-        # fetch secrets for PRTPE
-        sc_prtpe = client.secrets.list_secrets(
-            project_id=project_id,
-            project_slug=project_slug,
-            environment_slug=environment_slug,
-            secret_path="/prtpe",
-        ).secrets
-        sc_dct_prtpe = {sc.secretKey: sc.secretValue for sc in sc_prtpe}
-
-        # fetch secrets for PRTSO
-        sc_prtso = client.secrets.list_secrets(
-            project_id=project_id,
-            project_slug=project_slug,
-            environment_slug=environment_slug,
-            secret_path="/prtso",
-        ).secrets
-        sc_dct_prtso = {sc.secretKey: sc.secretValue for sc in sc_prtso}
-
-        # fetch secrets for SOLID
-        sc_solid = client.secrets.list_secrets(
-            project_id=project_id,
-            project_slug=project_slug,
-            environment_slug=environment_slug,
-            secret_path="/solid",
-        ).secrets
-        sc_dct_solid = {sc.secretKey: sc.secretValue for sc in sc_solid}
-
-        # fetch secrets for BIGE
-        sc_bige = client.secrets.list_secrets(
-            project_id=project_id,
-            project_slug=project_slug,
-            environment_slug=environment_slug,
-            secret_path="/bige",
-        ).secrets
-        sc_dct_bige = {sc.secretKey: sc.secretValue for sc in sc_bige}
-
+        bip_secrets = {
+            bip_name: _secrets_dict_at_path(
+                client,
+                project_id=project_id,
+                project_slug=project_slug,
+                environment_slug=environment_slug,
+                secret_path=secret_path,
+            )
+            for bip_name, secret_path in BIP_JOBS
+        }
     except Exception as e:
         error_msg = f"Error fetching secrets from Infisical: {e}"
         logging.error(error_msg)
@@ -284,69 +252,13 @@ def main() -> None:
         )
         return
 
-    # # PRTPE_TEST
-    # fetch_and_move(
-    #     bip_name="PRTPE_TEST",
-    #     sc_dct=sc_dct_prtpe_test,
-    #     path_to_gcs_file=path_to_gcs_file,
-    #     email_sender=email_sender,
-    # )
-
-    # # PRTSO_TEST
-    # fetch_and_move(
-    #     bip_name="PRTSO_TEST",
-    #     sc_dct=sc_dct_prtso_test,
-    #     path_to_gcs_file=path_to_gcs_file,
-    #     email_sender=email_sender,
-    # )
-
-    # # SOLID_TEST
-    # fetch_and_move(
-    #     bip_name="SOLID_TEST",
-    #     sc_dct=sc_dct_solid_test,
-    #     path_to_gcs_file=path_to_gcs_file,
-    #     email_sender=email_sender,
-    # )
-
-    # # BIGE_TEST
-    # fetch_and_move(
-    #     bip_name="BIGE_TEST",
-    #     sc_dct=sc_dct_bige_test,
-    #     path_to_gcs_file=path_to_gcs_file,
-    #     email_sender=email_sender,
-    # )
-
-    # PRTPE
-    fetch_and_move(
-        bip_name="PRTPE",
-        sc_dct=sc_dct_prtpe,
-        path_to_gcs_file=path_to_gcs_file,
-        email_sender=email_sender,
-    )
-
-    # PRTSO
-    fetch_and_move(
-        bip_name="PRTSO",
-        sc_dct=sc_dct_prtso,
-        path_to_gcs_file=path_to_gcs_file,
-        email_sender=email_sender,
-    )
-
-    # SOLID
-    fetch_and_move(
-        bip_name="SOLID",
-        sc_dct=sc_dct_solid,
-        path_to_gcs_file=path_to_gcs_file,
-        email_sender=email_sender,
-    )
-
-    # BIGE
-    fetch_and_move(
-        bip_name="BIGE",
-        sc_dct=sc_dct_bige,
-        path_to_gcs_file=path_to_gcs_file,
-        email_sender=email_sender,
-    )
+    for bip_name, _secret_path in BIP_JOBS:
+        fetch_and_move(
+            bip_name=bip_name,
+            sc_dct=bip_secrets[bip_name],
+            path_to_gcs_file=path_to_gcs_file,
+            email_sender=email_sender,
+        )
 
 
 if __name__ == "__main__":
