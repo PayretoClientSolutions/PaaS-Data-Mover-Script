@@ -12,9 +12,10 @@ from sender import Sender
 
 
 class Fetcher:
-    def __init__(self, config: SFTPConfig, email_sender: Sender) -> None:
+    def __init__(self, config: SFTPConfig, email_sender: Sender, bip_name: str = "UNKNOWN") -> None:
         self.hostname = config.hostname
         self.email_sender = email_sender
+        self.bip_name = bip_name
         self.port = config.port
         self.username = config.username
         self.password = config.password
@@ -214,7 +215,15 @@ class Fetcher:
                     return
 
                 except Exception as e:
-                    logging.error(f"Failed to download {file_name}: {e}")
+                    error_msg = (
+                        f"[BIP: {self.bip_name}] Failed to download file '{file_name}' "
+                        f"from '{remote_file_path}' to '{local_file_path}': {e}"
+                    )
+                    logging.error(error_msg)
+                    self.email_sender.send(
+                        subject=" - Error Notification",
+                        body=error_msg
+                    )
                     failed_downloads.append(file_name)
                     continue  # skip deletion if download failed
 

@@ -162,7 +162,8 @@ def fetch_and_move(
     try:
         Fetcher(
             config=sftp_conf,
-            email_sender=email_sender
+            email_sender=email_sender,
+            bip_name=bip_name,
         ).fetch_files()
 
     except SystemExit as e:
