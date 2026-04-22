@@ -73,7 +73,7 @@ GCS authentication uses **`config/gcs.json`** at the repository root’s `config
 
 ## BIPs in the current script
 
-`main.py` runs the **`*_TEST`** Infisical folders first (**PRTPE_TEST**, **PRTSO_TEST**, **SOLID_TEST**, **BIGE_TEST**), then production (**PRTPE**, **PRTSO**, **SOLID**, **BIGE**). All entries live in `BIP_JOBS`; remove or reorder rows there if you want to skip test or change run order.
+`main.py` runs production BIPs in this order: **PRTPE**, **PRTSO**, **SOLID**, **BIGE**. All entries live in `BIP_JOBS`; remove or reorder rows there if you want to skip or change run order.
 
 ## Logging and operations
 
