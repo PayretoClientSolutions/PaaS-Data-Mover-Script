@@ -227,7 +227,7 @@ def main() -> None:
         # )
     except Exception as e:
         logging.error(f"Error initializing email sender: {e}")
-        return
+        sys.exit(1)
 
     # init path to gcs credentials file
     path_to_gcs_file = Path(__file__).parents[1] / "config" / "gcs.json"
