@@ -116,7 +116,8 @@ class Fetcher:
                 except paramiko.SSHException as e:
                     error_msg = f"SSHException occurred: {e}"
                     logging.error(error_msg)
-                    self._safe_notify(subject=" - Error Notification", body=error_msg)
+                    self._safe_notify(
+                        subject=" - Error Notification", body=error_msg)
                     continue
                 except Exception as e:
                     key_load_error = e
@@ -127,7 +128,8 @@ class Fetcher:
                 if key_load_error:
                     error_msg += f": {key_load_error}"
                 logging.fatal(error_msg)
-                self._safe_notify(subject=" - Error Notification", body=error_msg)
+                self._safe_notify(
+                    subject=" - Error Notification", body=error_msg)
                 return
 
             SSH_Client.connect(
@@ -175,7 +177,10 @@ class Fetcher:
             try:
                 bucket = self.gcs_client.get_bucket(self.bucket_name)
             except Exception as e:
-                logging.fatal(f"Could not access GCS bucket '{self.bucket_name}': {e}")
+                error_msg = f"Could not access GCS bucket '{self.bucket_name}': {e}"
+                logging.fatal(error_msg)
+                self._safe_notify(
+                    subject=" - Error Notification", body=error_msg)
                 return
 
             # tracking
@@ -198,12 +203,15 @@ class Fetcher:
 
                     # upload to GCS and delete local copy if upload is successful
                     local_file: Path = Path(local_file_path)
-                    upload_success = self._upload_file_to_gcs(local_file, bucket)
+                    upload_success = self._upload_file_to_gcs(
+                        local_file,
+                        bucket
+                    )
                     if upload_success:
-                        logging.info(f"Upload SUCCESSFUL! Deleting local copy.")
+                        logging.info("Upload SUCCESSFUL! Deleting local copy.")
                         local_file.unlink()
                     else:
-                        logging.error(f"Upload FAILED! retaining local copy.")
+                        logging.error("Upload FAILED! retaining local copy.")
 
                 except KeyboardInterrupt as e:
                     logging.warning("Download interrupted by user. Exiting...")
@@ -215,7 +223,8 @@ class Fetcher:
                         f"from '{remote_file_path}' to '{local_file_path}': {e}"
                     )
                     logging.error(error_msg)
-                    self._safe_notify(subject=" - Error Notification", body=error_msg)
+                    self._safe_notify(
+                        subject=" - Error Notification", body=error_msg)
                     failed_downloads.append(file_name)
                     continue  # skip deletion if download failed
 
@@ -226,7 +235,8 @@ class Fetcher:
                         sftp_client.remove(remote_file_path)
 
                     except KeyboardInterrupt as e:
-                        logging.warning("Delete interrupted by user. Exiting...")
+                        logging.warning(
+                            "Delete interrupted by user. Exiting...")
                         return
 
                     except Exception as e:
