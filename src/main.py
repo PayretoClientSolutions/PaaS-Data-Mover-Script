@@ -39,16 +39,16 @@ def init_logger() -> None:
 
 
 def init_sender(
-        host: str,
-        port: int,
-        username: str,
-        password: str,
-        from_addr: str,
-        to_addrs: list[str],
-        use_tls: bool,
-        use_ssl: bool,
-        subject_prefix: str,
-        app_name: str,
+    host: str,
+    port: int,
+    username: str,
+    password: str,
+    from_addr: str,
+    to_addrs: list[str],
+    use_tls: bool,
+    use_ssl: bool,
+    subject_prefix: str,
+    app_name: str,
 ) -> Sender:
     """
     Initializes the Sender class for email notifications.
@@ -107,6 +107,17 @@ def init_infisical_client() -> InfisicalConfig:
         raise
 
 
+def _safe_notify(email_sender: Sender, *, subject: str, body: str) -> None:
+    """
+    Sends an email notification without masking the original error path
+    if SMTP delivery fails.
+    """
+    try:
+        email_sender.send(subject=subject, body=body)
+    except Exception as notify_error:
+        logging.error(f"Failed to send notification email: {notify_error}")
+
+
 def _secrets_dict_at_path(
     client: InfisicalSDKClient,
     *,
@@ -143,11 +154,26 @@ def fetch_and_move(
         path_to_gcs_file (Path): Path to GCS credentials file
     """
 
+    raw_port = sc_dct.get("PORT", "22")
+    try:
+        port = int(raw_port)
+    except (TypeError, ValueError):
+        error_msg = (
+            f"Invalid PORT value for {bip_name}: '{raw_port}'. PORT must be an integer."
+        )
+        logging.error(error_msg)
+        _safe_notify(
+            email_sender,
+            subject=" - Error Notification",
+            body=error_msg,
+        )
+        return
+
     # map to SFTPConfig dataclass
     sftp_conf = SFTPConfig(
         hostname=sc_dct.get("HOSTNAME", ""),
         username=sc_dct.get("USERNAME", ""),
-        port=int(sc_dct.get("PORT", "22")),
+        port=port,
         password=sc_dct.get("PASSWORD", ""),
         path_to_key=sc_dct.get("PATH_TO_KEY", ""),
         local_path=sc_dct.get("LOCAL_PATH", "."),
@@ -156,8 +182,7 @@ def fetch_and_move(
     )
 
     # initialize Fetcher class
-    logging.info(
-        f"> > > > > FETCHER task started for {bip_name} < < < < <")
+    logging.info(f"> > > > > FETCHER task started for {bip_name} < < < < <")
 
     try:
         Fetcher(
@@ -169,7 +194,8 @@ def fetch_and_move(
     except SystemExit as e:
         error_msg = f"SystemExit occurred while running Fetcher for {bip_name}: {e}"
         logging.error(error_msg)
-        email_sender.send(
+        _safe_notify(
+            email_sender,
             subject=" - SystemExit Notification",
             body=error_msg,
         )
@@ -178,7 +204,8 @@ def fetch_and_move(
     except Exception as e:
         error_msg = f"Error occurred while running Fetcher for {bip_name}: {e}"
         logging.error(error_msg)
-        email_sender.send(
+        _safe_notify(
+            email_sender,
             subject=" - Error Notification",
             body=error_msg,
         )
@@ -197,17 +224,16 @@ def main() -> None:
     project_slug = infisical_config.project_slug
     environment_slug = infisical_config.environment_slug
 
-    # fetch secrets for email sender
-    sc_email = client.secrets.list_secrets(
-        project_id=project_id,
-        project_slug=project_slug,
-        environment_slug=environment_slug,
-        secret_path="/SMTP",
-    ).secrets
-    sc_dct_email = {
-        sc.secretKey: sc.secretValue for sc in sc_email}
-
     try:
+        # fetch secrets for email sender
+        sc_email = client.secrets.list_secrets(
+            project_id=project_id,
+            project_slug=project_slug,
+            environment_slug=environment_slug,
+            secret_path="/SMTP",
+        ).secrets
+        sc_dct_email = {sc.secretKey: sc.secretValue for sc in sc_email}
+
         email_sender = init_sender(
             host="smtp.gmail.com",
             port=587,
@@ -246,7 +272,8 @@ def main() -> None:
     except Exception as e:
         error_msg = f"Error fetching secrets from Infisical: {e}"
         logging.error(error_msg)
-        email_sender.send(
+        _safe_notify(
+            email_sender,
             subject=" - Error Notification",
             body=error_msg,
         )

@@ -12,7 +12,9 @@ from sender import Sender
 
 
 class Fetcher:
-    def __init__(self, config: SFTPConfig, email_sender: Sender, bip_name: str = "UNKNOWN") -> None:
+    def __init__(
+        self, config: SFTPConfig, email_sender: Sender, bip_name: str = "UNKNOWN"
+    ) -> None:
         self.hostname = config.hostname
         self.email_sender = email_sender
         self.bip_name = bip_name
@@ -34,20 +36,14 @@ class Fetcher:
         except Exception as e:
             error_msg = f"Failed to initialize Google Cloud Storage client: {e}"
             logging.error(error_msg)
-            self.email_sender.send(
-                subject=" - Error Notification",
-                body=error_msg
-            )
+            self._safe_notify(subject=" - Error Notification", body=error_msg)
             sys.exit(1)
 
         logging.info(f"Checking if local_path exists: {self.local_path}")
         if not os.path.exists(self.local_path):
             error_msg = f"Required directory '{self.local_path}' does not exist."
             logging.fatal(error_msg)
-            self.email_sender.send(
-                subject=" - Error Notification",
-                body=error_msg
-            )
+            self._safe_notify(subject=" - Error Notification", body=error_msg)
             sys.exit(1)
 
         logging.info(
@@ -56,6 +52,16 @@ class Fetcher:
             f"local_path={self.local_path}, path_to_key={self.path_to_key}, "
             f"target_file_type={self.target_file_type}, remote_path={self.remote_path}"
         )
+
+    def _safe_notify(self, *, subject: str, body: str) -> None:
+        """
+        Sends notification email without interrupting error handling
+        when SMTP delivery itself fails.
+        """
+        try:
+            self.email_sender.send(subject=subject, body=body)
+        except Exception as notify_error:
+            logging.error(f"Failed to send notification email: {notify_error}")
 
     def fetch_files(self) -> None:
         """
@@ -110,10 +116,7 @@ class Fetcher:
                 except paramiko.SSHException as e:
                     error_msg = f"SSHException occurred: {e}"
                     logging.error(error_msg)
-                    self.email_sender.send(
-                        subject=" - Error Notification",
-                        body=error_msg
-                    )
+                    self._safe_notify(subject=" - Error Notification", body=error_msg)
                     continue
                 except Exception as e:
                     key_load_error = e
@@ -124,10 +127,7 @@ class Fetcher:
                 if key_load_error:
                     error_msg += f": {key_load_error}"
                 logging.fatal(error_msg)
-                self.email_sender.send(
-                    subject=" - Error Notification",
-                    body=error_msg
-                )
+                self._safe_notify(subject=" - Error Notification", body=error_msg)
                 return
 
             SSH_Client.connect(
@@ -137,15 +137,12 @@ class Fetcher:
                 pkey=private_key,
                 look_for_keys=False,
                 allow_agent=False,
-                timeout=30
+                timeout=30,
             )
         except Exception as e:
             error_msg = f"Failed to connect to {self.hostname}: {e}"
             logging.fatal(error_msg)
-            self.email_sender.send(
-                subject=" - Error Notification",
-                body=error_msg
-            )
+            self._safe_notify(subject=" - Error Notification", body=error_msg)
             return
 
         # open SFTP session
@@ -178,8 +175,7 @@ class Fetcher:
             try:
                 bucket = self.gcs_client.get_bucket(self.bucket_name)
             except Exception as e:
-                logging.fatal(
-                    f"Could not access GCS bucket '{self.bucket_name}': {e}")
+                logging.fatal(f"Could not access GCS bucket '{self.bucket_name}': {e}")
                 return
 
             # tracking
@@ -197,15 +193,14 @@ class Fetcher:
                     sftp_client.get(remote_file_path, local_file_path)
                     downloaded_files.append(file_name)
                     logging.info(
-                        f"{len(downloaded_files)}/{len(target_files)} downloaded so far.")
+                        f"{len(downloaded_files)}/{len(target_files)} downloaded so far."
+                    )
 
                     # upload to GCS and delete local copy if upload is successful
                     local_file: Path = Path(local_file_path)
-                    upload_success = self._upload_file_to_gcs(
-                        local_file, bucket)
+                    upload_success = self._upload_file_to_gcs(local_file, bucket)
                     if upload_success:
-                        logging.info(
-                            f"Upload SUCCESSFUL! Deleting local copy.")
+                        logging.info(f"Upload SUCCESSFUL! Deleting local copy.")
                         local_file.unlink()
                     else:
                         logging.error(f"Upload FAILED! retaining local copy.")
@@ -220,25 +215,27 @@ class Fetcher:
                         f"from '{remote_file_path}' to '{local_file_path}': {e}"
                     )
                     logging.error(error_msg)
-                    self.email_sender.send(
-                        subject=" - Error Notification",
-                        body=error_msg
-                    )
+                    self._safe_notify(subject=" - Error Notification", body=error_msg)
                     failed_downloads.append(file_name)
                     continue  # skip deletion if download failed
 
-                # Delete the file from server if the download succeeded
-                try:
-                    logging.info(f"Deleting remote file {file_name}")
-                    sftp_client.remove(remote_file_path)
+                # Delete the remote file only if upload succeeded
+                if upload_success:
+                    try:
+                        logging.info(f"Deleting remote file {file_name}")
+                        sftp_client.remove(remote_file_path)
 
-                except KeyboardInterrupt as e:
-                    logging.warning("Delete interrupted by user. Exiting...")
-                    return
+                    except KeyboardInterrupt as e:
+                        logging.warning("Delete interrupted by user. Exiting...")
+                        return
 
-                except Exception as e:
-                    logging.error(f"Failed to remove {file_name}: {e}")
-                    failed_deletions.append(file_name)
+                    except Exception as e:
+                        logging.error(f"Failed to remove {file_name}: {e}")
+                        failed_deletions.append(file_name)
+                else:
+                    logging.warning(
+                        f"Skipping remote deletion for {file_name} because upload failed."
+                    )
 
                 time.sleep(1)
 
@@ -283,8 +280,5 @@ class Fetcher:
         except Exception as e:
             error_msg = f"Failed to upload file {file_path.name}: {e}"
             logging.error(error_msg)
-            self.email_sender.send(
-                subject=" - Error Notification",
-                body=error_msg
-            )
+            self._safe_notify(subject=" - Error Notification", body=error_msg)
             return False
