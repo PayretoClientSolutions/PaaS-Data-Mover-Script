@@ -13,14 +13,14 @@ from sender import Sender
 
 # BIP label (for logs / email) and Infisical secret_path. Order is run order.
 BIP_JOBS: list[tuple[str, str]] = [
-    # ("PRTPE_TEST", "/prtpe_test"),
-    # ("PRTSO_TEST", "/prtso_test"),
-    # ("SOLID_TEST", "/solid_test"),
-    # ("BIGE_TEST", "/bige_test"),
-    ("PRTPE", "/prtpe"),
-    ("PRTSO", "/prtso"),
-    ("SOLID", "/solid"),
-    ("BIGE", "/bige"),
+    ("PRTPE_TEST", "/prtpe_test"),
+    ("PRTSO_TEST", "/prtso_test"),
+    ("SOLID_TEST", "/solid_test"),
+    ("BIGE_TEST", "/bige_test"),
+    # ("PRTPE", "/prtpe"),
+    # ("PRTSO", "/prtso"),
+    # ("SOLID", "/solid"),
+    # ("BIGE", "/bige"),
 ]
 
 
