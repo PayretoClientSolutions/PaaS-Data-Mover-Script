@@ -116,8 +116,7 @@ class Fetcher:
                 except paramiko.SSHException as e:
                     error_msg = f"SSHException occurred: {e}"
                     logging.error(error_msg)
-                    self._safe_notify(
-                        subject=" - Error Notification", body=error_msg)
+                    self._safe_notify(subject=" - Error Notification", body=error_msg)
                     continue
                 except Exception as e:
                     key_load_error = e
@@ -128,8 +127,7 @@ class Fetcher:
                 if key_load_error:
                     error_msg += f": {key_load_error}"
                 logging.fatal(error_msg)
-                self._safe_notify(
-                    subject=" - Error Notification", body=error_msg)
+                self._safe_notify(subject=" - Error Notification", body=error_msg)
                 return
 
             SSH_Client.connect(
@@ -159,10 +157,16 @@ class Fetcher:
                 f for f in remote_files if f.endswith(self.target_file_type)
             ]
 
-            # exit if no files found
             if not target_files:
                 logging.info(
                     f"No {self.target_file_type} file(s) found in path '{self.remote_path}'.  Exiting..."
+                )
+                self._safe_notify(
+                    subject=" - No Files Found",
+                    body=(
+                        f"[BIP: {self.bip_name}] No {self.target_file_type} file(s) found "
+                        f"in remote path '{self.remote_path}' on host {self.hostname}."
+                    ),
                 )
                 return
 
@@ -179,8 +183,7 @@ class Fetcher:
             except Exception as e:
                 error_msg = f"Could not access GCS bucket '{self.bucket_name}': {e}"
                 logging.fatal(error_msg)
-                self._safe_notify(
-                    subject=" - Error Notification", body=error_msg)
+                self._safe_notify(subject=" - Error Notification", body=error_msg)
                 return
 
             # tracking
@@ -203,10 +206,7 @@ class Fetcher:
 
                     # upload to GCS and delete local copy if upload is successful
                     local_file: Path = Path(local_file_path)
-                    upload_success = self._upload_file_to_gcs(
-                        local_file,
-                        bucket
-                    )
+                    upload_success = self._upload_file_to_gcs(local_file, bucket)
                     if upload_success:
                         logging.info("Upload SUCCESSFUL! Deleting local copy.")
                         local_file.unlink()
@@ -223,8 +223,7 @@ class Fetcher:
                         f"from '{remote_file_path}' to '{local_file_path}': {e}"
                     )
                     logging.error(error_msg)
-                    self._safe_notify(
-                        subject=" - Error Notification", body=error_msg)
+                    self._safe_notify(subject=" - Error Notification", body=error_msg)
                     failed_downloads.append(file_name)
                     continue  # skip deletion if download failed
 
@@ -235,8 +234,7 @@ class Fetcher:
                         sftp_client.remove(remote_file_path)
 
                     except KeyboardInterrupt as e:
-                        logging.warning(
-                            "Delete interrupted by user. Exiting...")
+                        logging.warning("Delete interrupted by user. Exiting...")
                         return
 
                     except Exception as e:

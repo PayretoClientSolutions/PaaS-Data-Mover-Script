@@ -41,14 +41,15 @@ class Sender:
         host = (self.config.host or "").strip()
         if not host or host.startswith("."):
             raise ValueError(
-                "Invalid SMTP host. It cannot be empty or start with a dot.")
+                "Invalid SMTP host. It cannot be empty or start with a dot."
+            )
         port = int(self.config.port) if self.config.port else 0
         if port <= 0:
             raise ValueError(
-                "SMTP port is invalid or not set. Check your 'PORT' setting.")
+                "SMTP port is invalid or not set. Check your 'PORT' setting."
+            )
         if self.config.use_ssl:
-            server: smtplib.SMTP = smtplib.SMTP_SSL(
-                host, port, timeout=30)
+            server: smtplib.SMTP = smtplib.SMTP_SSL(host, port, timeout=30)
         else:
             server = smtplib.SMTP(host, port, timeout=30)
         try:
@@ -56,7 +57,8 @@ class Sender:
             if not self.config.use_ssl and self.config.use_tls:
                 if not server.has_extn("starttls"):
                     raise RuntimeError(
-                        "SMTP server does not advertise STARTTLS but USE_TLS=True")
+                        "SMTP server does not advertise STARTTLS but USE_TLS=True"
+                    )
                 tls_ctx = ssl.create_default_context()
                 server.starttls(context=tls_ctx)
                 server.ehlo()
@@ -75,7 +77,8 @@ class Sender:
 
     def _ensure_recipients(self, to_addrs: Optional[Iterable[str]]) -> list[str]:
         recipients = [
-            r.strip() for r in (to_addrs or self.config.to_addrs)
+            r.strip()
+            for r in (to_addrs or self.config.to_addrs)
             if r and str(r).strip()
         ]
         if not recipients:
@@ -122,10 +125,7 @@ class Sender:
                 with open(path, "rb") as fp:
                     data = fp.read()
                 msg.add_attachment(
-                    data,
-                    maintype=maintype,
-                    subtype=subtype,
-                    filename=Path(path).name
+                    data, maintype=maintype, subtype=subtype, filename=Path(path).name
                 )
             except Exception as e:
                 logger.warning(f"Failed to attach file {path}: {e}")
@@ -155,8 +155,10 @@ class Sender:
         app = self.config.app_name or "Application"
         exc_name = type(exc).__name__
         subject = f"{app} error: {exc_name}"
-        tb = "".join(traceback.format_exception(type(exc), exc,
-                     exc.__traceback__)) or "(no traceback available)"
+        tb = (
+            "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+            or "(no traceback available)"
+        )
 
         lines = [
             f"An exception occurred in {app}:",
