@@ -93,6 +93,7 @@ class Fetcher:
         deleted: list[FileResult] = []
         failed_downloads: list[FileResult] = []
         failed_deletions: list[FileResult] = []
+        target_files: list[str] = []
 
         # Initialize SSH client
         SSH_Client = paramiko.SSHClient()
@@ -411,15 +412,11 @@ class Fetcher:
             duration = time.perf_counter() - overall_start
             return BIPSummary(
                 bip_name=self.bip_name,
-                files_found=len(target_files) if "target_files" in locals() else 0,
-                downloaded=downloaded if "downloaded" in locals() else [],
-                deleted=deleted if "deleted" in locals() else [],
-                failed_downloads=failed_downloads
-                if "failed_downloads" in locals()
-                else [],
-                failed_deletions=failed_deletions
-                if "failed_deletions" in locals()
-                else [],
+                files_found=len(target_files),
+                downloaded=downloaded,
+                deleted=deleted,
+                failed_downloads=failed_downloads,
+                failed_deletions=failed_deletions,
                 duration_s=duration,
                 status="failed",
             )
