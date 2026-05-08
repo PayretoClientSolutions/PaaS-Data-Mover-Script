@@ -1,13 +1,12 @@
 import logging
 import os
-import sys
 import time
 from pathlib import Path
 
 import paramiko
 from google.cloud import storage
 
-from models import SFTPConfig
+from models import BIPSummary, FileResult, SFTPConfig
 from sender import Sender
 
 
@@ -37,14 +36,14 @@ class Fetcher:
             error_msg = f"Failed to initialize Google Cloud Storage client: {e}"
             logging.error(error_msg)
             self._safe_notify(subject=" - Error Notification", body=error_msg)
-            sys.exit(1)
+            raise RuntimeError(error_msg)
 
         logging.info(f"Checking if local_path exists: {self.local_path}")
         if not os.path.exists(self.local_path):
             error_msg = f"Required directory '{self.local_path}' does not exist."
             logging.fatal(error_msg)
             self._safe_notify(subject=" - Error Notification", body=error_msg)
-            sys.exit(1)
+            raise RuntimeError(error_msg)
 
         logging.info(
             "Fetcher initialized with the following parameters: "
@@ -63,14 +62,44 @@ class Fetcher:
         except Exception as notify_error:
             logging.error(f"Failed to send notification email: {notify_error}")
 
-    def fetch_files(self) -> None:
+    def _upload_file_to_gcs(self, file_path: Path, bucket) -> bool:
         """
-        Connects to the remote server and fetches files from the specified remote path to the local path.
+        Uploads a file to Google Cloud Storage.
+        Returns True if upload is successful, False otherwise.
+        This function assumes that the GCS bucket already exists.
+        The GCS credentials file renamed to 'gcs.json' must be located in the current working directory.
         """
 
-        # initialize SSH client
+        # Upload the file.
+        try:
+            logging.info(f"Uploading file {file_path.name}")
+            blob = bucket.blob(file_path.name)
+            blob.upload_from_filename(filename=str(file_path))
+            return True
+
+        except Exception as e:
+            error_msg = f"Failed to upload file {file_path.name}: {e}"
+            logging.error(error_msg)
+            self._safe_notify(subject=" - Error Notification", body=error_msg)
+            return False
+
+    def fetch_files(self) -> BIPSummary:
+        """
+        Connects to the remote server and fetches files from the specified remote path to the local path.
+        Returns a BIPSummary capturing the results of the run.
+        """
+        # Result tracking lists
+        downloaded: list[FileResult] = []
+        deleted: list[FileResult] = []
+        failed_downloads: list[FileResult] = []
+        failed_deletions: list[FileResult] = []
+
+        # Initialize SSH client
         SSH_Client = paramiko.SSHClient()
         SSH_Client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        # Record total runtime start
+        overall_start = time.perf_counter()
 
         # attempt connection
         try:
@@ -80,10 +109,20 @@ class Fetcher:
 
             # Require key-based auth only
             if not self.path_to_key:
-                logging.fatal(
-                    "SFTP key path not provided; this script requires key-based authentication."
+                error_msg = "SFTP key path not provided; this script requires key-based authentication."
+                logging.fatal(error_msg)
+                self._safe_notify(subject=" - Error Notification", body=error_msg)
+                duration = time.perf_counter() - overall_start
+                return BIPSummary(
+                    bip_name=self.bip_name,
+                    files_found=0,
+                    downloaded=[],
+                    deleted=[],
+                    failed_downloads=[],
+                    failed_deletions=[],
+                    duration_s=duration,
+                    status="failed",
                 )
-                sys.exit(1)
 
             # Load the private key (supports RSA, DSA, ECDSA, Ed25519, and OpenSSH format)
             private_key = None
@@ -101,15 +140,23 @@ class Fetcher:
                         bits = None
                         if hasattr(private_key, "get_bits"):
                             bits = private_key.get_bits()
-
                         elif hasattr(private_key, "bits"):
                             bits = getattr(private_key, "bits")
-
                         if bits != 4096:
                             logging.fatal(
                                 f"RSA key loaded but key size is {bits}; server requires 4096-bit RSA."
                             )
-                            return
+                            duration = time.perf_counter() - overall_start
+                            return BIPSummary(
+                                bip_name=self.bip_name,
+                                files_found=0,
+                                downloaded=[],
+                                deleted=[],
+                                failed_downloads=[],
+                                failed_deletions=[],
+                                duration_s=duration,
+                                status="failed",
+                            )
 
                     logging.info(f"Successfully loaded {key_class.__name__}")
                     break
@@ -128,7 +175,17 @@ class Fetcher:
                     error_msg += f": {key_load_error}"
                 logging.fatal(error_msg)
                 self._safe_notify(subject=" - Error Notification", body=error_msg)
-                return
+                duration = time.perf_counter() - overall_start
+                return BIPSummary(
+                    bip_name=self.bip_name,
+                    files_found=0,
+                    downloaded=[],
+                    deleted=[],
+                    failed_downloads=[],
+                    failed_deletions=[],
+                    duration_s=duration,
+                    status="failed",
+                )
 
             SSH_Client.connect(
                 hostname=self.hostname,
@@ -143,7 +200,17 @@ class Fetcher:
             error_msg = f"Failed to connect to {self.hostname}: {e}"
             logging.fatal(error_msg)
             self._safe_notify(subject=" - Error Notification", body=error_msg)
-            return
+            duration = time.perf_counter() - overall_start
+            return BIPSummary(
+                bip_name=self.bip_name,
+                files_found=0,
+                downloaded=[],
+                deleted=[],
+                failed_downloads=[],
+                failed_deletions=[],
+                duration_s=duration,
+                status="failed",
+            )
 
         # open SFTP session
         try:
@@ -168,14 +235,21 @@ class Fetcher:
                         f"in remote path '{self.remote_path}' on host {self.hostname}."
                     ),
                 )
-                return
+                duration = time.perf_counter() - overall_start
+                return BIPSummary(
+                    bip_name=self.bip_name,
+                    files_found=0,
+                    downloaded=[],
+                    deleted=[],
+                    failed_downloads=[],
+                    failed_deletions=[],
+                    duration_s=duration,
+                    status="no_files",
+                )
 
             logging.info(
                 f"Found: {len(target_files)} {self.target_file_type} file(s) in path '{self.remote_path}'"
             )
-
-            # quick patch to test SFTP connection
-            # return
 
             # fetch GCS bucket once before the loop
             try:
@@ -184,12 +258,17 @@ class Fetcher:
                 error_msg = f"Could not access GCS bucket '{self.bucket_name}': {e}"
                 logging.fatal(error_msg)
                 self._safe_notify(subject=" - Error Notification", body=error_msg)
-                return
-
-            # tracking
-            downloaded_files = []
-            failed_downloads = []
-            failed_deletions = []
+                duration = time.perf_counter() - overall_start
+                return BIPSummary(
+                    bip_name=self.bip_name,
+                    files_found=len(target_files),
+                    downloaded=[],
+                    deleted=[],
+                    failed_downloads=[],
+                    failed_deletions=[],
+                    duration_s=duration,
+                    status="failed",
+                )
 
             for file_name in target_files:
                 remote_file_path = f"{self.remote_path}/{file_name}"
@@ -199,12 +278,15 @@ class Fetcher:
                 try:
                     logging.info(f"Downloading file {file_name}")
                     sftp_client.get(remote_file_path, local_file_path)
-                    downloaded_files.append(file_name)
+                    downloaded.append(
+                        FileResult(name=file_name, success=True, stage="download")
+                    )
                     logging.info(
-                        f"{len(downloaded_files)}/{len(target_files)} downloaded so far."
+                        f"{len(downloaded)}/{len(target_files)} downloaded so far."
                     )
 
                     # upload to GCS and delete local copy if upload is successful
+                    upload_success = False
                     local_file: Path = Path(local_file_path)
                     upload_success = self._upload_file_to_gcs(local_file, bucket)
                     if upload_success:
@@ -212,11 +294,29 @@ class Fetcher:
                         local_file.unlink()
                     else:
                         logging.error("Upload FAILED! retaining local copy.")
-
-                except KeyboardInterrupt as e:
+                        # Remove from downloaded since upload failed
+                        downloaded = [d for d in downloaded if d.name != file_name]
+                        failed_downloads.append(
+                            FileResult(
+                                name=file_name,
+                                success=False,
+                                stage="upload",
+                                error_message="Upload to GCS failed",
+                            )
+                        )
+                except KeyboardInterrupt:
                     logging.warning("Download interrupted by user. Exiting...")
-                    return
-
+                    duration = time.perf_counter() - start_time
+                    return BIPSummary(
+                        bip_name=self.bip_name,
+                        files_found=len(target_files),
+                        downloaded=downloaded,
+                        deleted=deleted,
+                        failed_downloads=failed_downloads,
+                        failed_deletions=failed_deletions,
+                        duration_s=duration,
+                        status="failed",
+                    )
                 except Exception as e:
                     error_msg = (
                         f"[BIP: {self.bip_name}] Failed to download file '{file_name}' "
@@ -224,7 +324,14 @@ class Fetcher:
                     )
                     logging.error(error_msg)
                     self._safe_notify(subject=" - Error Notification", body=error_msg)
-                    failed_downloads.append(file_name)
+                    failed_downloads.append(
+                        FileResult(
+                            name=file_name,
+                            success=False,
+                            stage="download",
+                            error_message=str(e),
+                        )
+                    )
                     continue  # skip deletion if download failed
 
                 # Delete the remote file only if upload succeeded
@@ -232,14 +339,34 @@ class Fetcher:
                     try:
                         logging.info(f"Deleting remote file {file_name}")
                         sftp_client.remove(remote_file_path)
-
-                    except KeyboardInterrupt as e:
+                        deleted.append(
+                            FileResult(name=file_name, success=True, stage="delete")
+                        )
+                    except KeyboardInterrupt:
                         logging.warning("Delete interrupted by user. Exiting...")
-                        return
-
+                        duration = time.perf_counter() - start_time
+                        return BIPSummary(
+                            bip_name=self.bip_name,
+                            files_found=len(target_files),
+                            downloaded=downloaded,
+                            deleted=deleted,
+                            failed_downloads=failed_downloads,
+                            failed_deletions=failed_deletions,
+                            duration_s=duration,
+                            status="partial"
+                            if (failed_downloads or failed_deletions)
+                            else "success",
+                        )
                     except Exception as e:
                         logging.error(f"Failed to remove {file_name}: {e}")
-                        failed_deletions.append(file_name)
+                        failed_deletions.append(
+                            FileResult(
+                                name=file_name,
+                                success=False,
+                                stage="delete",
+                                error_message=str(e),
+                            )
+                        )
                 else:
                     logging.warning(
                         f"Skipping remote deletion for {file_name} because upload failed."
@@ -249,44 +376,52 @@ class Fetcher:
 
             end = time.perf_counter()
 
+            # Determine status
+            if failed_downloads or failed_deletions:
+                status = "partial"
+                logging.warning("Some operations failed - review logs above")
+            else:
+                status = "success"
+
             # summary logging
             logging.info(
-                f"Process complete: {len(downloaded_files)} downloaded, "
+                f"Process complete: {len(downloaded)} downloaded, "
                 f"{len(failed_downloads)} FAILED downloads, "
                 f"{len(failed_deletions)} FAILED deletions, "
                 f"timed for {end - start_time:.6f} seconds."
             )
 
-            if failed_downloads or failed_deletions:
-                logging.warning("Some operations failed - review logs above")
+            return BIPSummary(
+                bip_name=self.bip_name,
+                files_found=len(target_files),
+                downloaded=downloaded,
+                deleted=deleted,
+                failed_downloads=failed_downloads,
+                failed_deletions=failed_deletions,
+                duration_s=end - start_time,
+                status=status,
+            )
 
         except Exception as e:
             logging.fatal(f"Failed to open SFTP session: {e}")
-            return
+            duration = time.perf_counter() - overall_start
+            return BIPSummary(
+                bip_name=self.bip_name,
+                files_found=len(target_files) if "target_files" in locals() else 0,
+                downloaded=downloaded if "downloaded" in locals() else [],
+                deleted=deleted if "deleted" in locals() else [],
+                failed_downloads=failed_downloads
+                if "failed_downloads" in locals()
+                else [],
+                failed_deletions=failed_deletions
+                if "failed_deletions" in locals()
+                else [],
+                duration_s=duration,
+                status="failed",
+            )
 
         finally:
             # ensure SSH connection is always closed
             if SSH_Client:
                 logging.info("Finally closing session.")
                 SSH_Client.close()
-
-    def _upload_file_to_gcs(self, file_path: Path, bucket) -> bool:
-        """
-        Uploads a file to Google Cloud Storage.\n
-        Returns True if upload is successful, False otherwise.\n
-        This function assumes that the GCS bucket already exists.
-        The GCS credentials file renamed to 'gcs.json' must be located in the current working directory.
-        """
-
-        # Upload the file.
-        try:
-            logging.info(f"Uploading file {file_path.name}")
-            blob = bucket.blob(file_path.name)
-            blob.upload_from_filename(filename=str(file_path))
-            return True
-
-        except Exception as e:
-            error_msg = f"Failed to upload file {file_path.name}: {e}"
-            logging.error(error_msg)
-            self._safe_notify(subject=" - Error Notification", body=error_msg)
-            return False

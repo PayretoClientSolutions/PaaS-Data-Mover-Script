@@ -5,6 +5,38 @@ from infisical_sdk import InfisicalSDKClient
 
 
 @dataclass
+class FileResult:
+    """Single file outcome inside one BIP."""
+
+    name: str
+    success: bool
+    stage: str  # e.g. "download", "upload", "delete"
+    error_message: str = ""
+
+
+@dataclass
+class BIPSummary:
+    """Aggregated results for one BIP run."""
+
+    bip_name: str
+    files_found: int
+    downloaded: list[FileResult]
+    deleted: list[FileResult]
+    failed_downloads: list[FileResult]
+    failed_deletions: list[FileResult]
+    duration_s: float
+    status: str  # "success", "partial", "failed", or "no_files"
+
+    @property
+    def files_succeeded(self) -> int:
+        return len(self.downloaded) + len(self.deleted)
+
+    @property
+    def files_failed(self) -> int:
+        return len(self.failed_downloads) + len(self.failed_deletions)
+
+
+@dataclass
 class SFTPConfig:
     """
     configuration for SFTP connections per BIP.
