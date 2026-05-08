@@ -153,7 +153,11 @@ def _status_emoji(status: str) -> str:
 
 def _build_summary_text(summaries: list[BIPSummary]) -> str:
     """Build plain-text fallback body for the summary email."""
-    lines = ["move-it Daily Summary", "=====================", ""]
+    lines = [
+        "PaaS Data Extraction Script - Hourly Summary",
+        "=====================",
+        "",
+    ]
     for s in summaries:
         lines.append(f"BIP: {s.bip_name}")
         lines.append(f"  Status: {s.status}")
@@ -299,6 +303,8 @@ def fetch_and_move(
         local_path=sc_dct.get("LOCAL_PATH", "."),
         bucket_name=sc_dct.get("BUCKET_NAME", ""),
         path_to_gcs_credentials=str(path_to_gcs_file),
+        target_file_type=sc_dct.get("TARGET_FILE_TYPE", ".csv"),
+        remote_path=sc_dct.get("REMOTE_PATH", "/REPORTS"),
     )
 
     # initialize Fetcher class
@@ -428,7 +434,7 @@ def main() -> None:
         html_body = _build_summary_html(summaries)
         text_body = _build_summary_text(summaries)
         email_sender.send(
-            subject="Daily Summary",
+            subject="Hourly Summary",
             body=text_body,
             html=html_body,
         )

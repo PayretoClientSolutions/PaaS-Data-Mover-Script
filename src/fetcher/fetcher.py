@@ -129,6 +129,7 @@ class Fetcher:
             key_load_error = None
 
             # ACI's SFTP server only supports Ed25519 and 4096-bit RSA keys
+            key_attempt_errors: list[str] = []
             for key_class in (paramiko.RSAKey, paramiko.Ed25519Key):
                 try:
                     private_key = key_class.from_private_key_file(
@@ -161,17 +162,20 @@ class Fetcher:
                     logging.info(f"Successfully loaded {key_class.__name__}")
                     break
                 except paramiko.SSHException as e:
-                    error_msg = f"SSHException occurred: {e}"
-                    logging.error(error_msg)
-                    self._safe_notify(subject=" - Error Notification", body=error_msg)
+                    msg = f"{key_class.__name__} failed: {e}"
+                    logging.warning(msg)
+                    key_attempt_errors.append(msg)
                     continue
                 except Exception as e:
                     key_load_error = e
+                    key_attempt_errors.append(f"{key_class.__name__} failed: {e}")
                     continue
 
             if private_key is None:
                 error_msg = f"Failed to load private key from {self.path_to_key}"
-                if key_load_error:
+                if key_attempt_errors:
+                    error_msg += "; " + "; ".join(key_attempt_errors)
+                elif key_load_error:
                     error_msg += f": {key_load_error}"
                 logging.fatal(error_msg)
                 self._safe_notify(subject=" - Error Notification", body=error_msg)
