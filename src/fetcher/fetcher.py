@@ -219,7 +219,6 @@ class Fetcher:
 
         # open SFTP session
         try:
-            start_time = time.perf_counter()
             logging.info(f"Connecting to {self.hostname} via SFTP...")
             sftp_client = SSH_Client.open_sftp()
 
@@ -311,7 +310,7 @@ class Fetcher:
                         )
                 except KeyboardInterrupt:
                     logging.warning("Download interrupted by user. Exiting...")
-                    duration = time.perf_counter() - start_time
+                    duration = time.perf_counter() - overall_start
                     return BIPSummary(
                         bip_name=self.bip_name,
                         files_found=len(target_files),
@@ -349,7 +348,7 @@ class Fetcher:
                         )
                     except KeyboardInterrupt:
                         logging.warning("Delete interrupted by user. Exiting...")
-                        duration = time.perf_counter() - start_time
+                        duration = time.perf_counter() - overall_start
                         return BIPSummary(
                             bip_name=self.bip_name,
                             files_found=len(target_files),
@@ -379,7 +378,7 @@ class Fetcher:
 
                 time.sleep(1)
 
-            end = time.perf_counter()
+            duration = time.perf_counter() - overall_start
 
             # Determine status
             if failed_downloads or failed_deletions:
@@ -393,7 +392,7 @@ class Fetcher:
                 f"Process complete: {len(downloaded)} downloaded, "
                 f"{len(failed_downloads)} FAILED downloads, "
                 f"{len(failed_deletions)} FAILED deletions, "
-                f"timed for {end - start_time:.6f} seconds."
+                f"timed for {duration:.6f} seconds."
             )
 
             return BIPSummary(
@@ -403,7 +402,7 @@ class Fetcher:
                 deleted=deleted,
                 failed_downloads=failed_downloads,
                 failed_deletions=failed_deletions,
-                duration_s=end - start_time,
+                duration_s=duration,
                 status=status,
             )
 
