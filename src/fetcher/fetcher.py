@@ -19,7 +19,7 @@ class Fetcher:
         self.bip_name = bip_name
         self.port = config.port
         self.username = config.username
-        self.password = config.password
+        self.key_passphrase = config.key_passphrase
         self.path_to_key = os.path.expanduser(config.path_to_key)
         self.local_path = os.path.expanduser(config.local_path)
         self.target_file_type = config.target_file_type
@@ -96,8 +96,8 @@ class Fetcher:
         target_files: list[str] = []
 
         # Initialize SSH client
-        SSH_Client = paramiko.SSHClient()
-        SSH_Client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh_client = paramiko.SSHClient()
+        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         # Record total runtime start
         overall_start = time.perf_counter()
@@ -134,7 +134,7 @@ class Fetcher:
             for key_class in (paramiko.RSAKey, paramiko.Ed25519Key):
                 try:
                     private_key = key_class.from_private_key_file(
-                        self.path_to_key, password=self.password
+                        self.path_to_key, password=self.key_passphrase
                     )
 
                     # If RSA, enforce 4096-bit length
@@ -192,7 +192,7 @@ class Fetcher:
                     status="failed",
                 )
 
-            SSH_Client.connect(
+            ssh_client.connect(
                 hostname=self.hostname,
                 port=self.port,
                 username=self.username,
@@ -220,7 +220,7 @@ class Fetcher:
         # open SFTP session
         try:
             logging.info(f"Connecting to {self.hostname} via SFTP...")
-            sftp_client = SSH_Client.open_sftp()
+            sftp_client = ssh_client.open_sftp()
 
             # list target files in the remote directory
             remote_files = sftp_client.listdir(self.remote_path)
@@ -422,6 +422,6 @@ class Fetcher:
 
         finally:
             # ensure SSH connection is always closed
-            if SSH_Client:
+            if ssh_client:
                 logging.info("Finally closing session.")
-                SSH_Client.close()
+                ssh_client.close()

@@ -45,7 +45,7 @@ class SFTPConfig:
         hostname (str): The hostname of the SFTP server.
         username (str): The username for SFTP authentication.
         port (int): The port number for the SFTP connection.
-        password (str): The password for SFTP authentication.
+        key_passphrase (str): The passphrase for the SFTP private key file.
         path_to_key (str): The path to the private key file for key-based authentication.
         local_path (str): The local directory path for file downloads.
         target_file_type (str): The target file type for processing, default is ".csv".
@@ -54,7 +54,7 @@ class SFTPConfig:
     hostname: str
     username: str
     port: int
-    password: str
+    key_passphrase: str
     path_to_key: str
     local_path: str
     bucket_name: str

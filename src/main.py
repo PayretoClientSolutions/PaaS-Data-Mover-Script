@@ -34,7 +34,9 @@ def init_logger() -> None:
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
         handlers=[
-            logging.FileHandler("app.log", mode="a"),  # Logs to a file.
+            logging.FileHandler(
+                Path(__file__).resolve().parents[1] / "app.log", mode="a"
+            ),
             logging.StreamHandler(),  # Logs to console.
         ],
     )
@@ -298,7 +300,7 @@ def fetch_and_move(
         hostname=sc_dct.get("HOSTNAME", ""),
         username=sc_dct.get("USERNAME", ""),
         port=port,
-        password=sc_dct.get("PASSWORD", ""),
+        key_passphrase=sc_dct.get("PASSWORD", ""),
         path_to_key=sc_dct.get("PATH_TO_KEY", ""),
         local_path=sc_dct.get("LOCAL_PATH", "."),
         bucket_name=sc_dct.get("BUCKET_NAME", ""),
@@ -396,7 +398,7 @@ def main() -> None:
         sys.exit(1)
 
     # init path to gcs credentials file
-    path_to_gcs_file = Path(__file__).parents[1] / "config" / "gcs.json"
+    path_to_gcs_file = Path(__file__).resolve().parents[1] / "config" / "gcs.json"
 
     try:
         bip_secrets = {
