@@ -111,6 +111,10 @@ def init_infisical_client() -> InfisicalConfig:
         raise
 
 
+def _now_str() -> str:
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
 def _safe_notify(email_sender: Sender, *, subject: str, body: str) -> None:
     """
     Sends an email notification without masking the original error path
@@ -281,7 +285,7 @@ def fetch_and_move(
         logging.error(error_msg)
         _safe_notify(
             email_sender,
-            subject=" - Error Notification",
+            subject=f"[{_now_str()}] [{bip_name}] Port validation error",
             body=error_msg,
         )
         return BIPSummary(
@@ -325,7 +329,7 @@ def fetch_and_move(
         logging.error(error_msg)
         _safe_notify(
             email_sender,
-            subject=" - SystemExit Notification",
+            subject=f"[{_now_str()}] [{bip_name}] SystemExit occurred",
             body=error_msg,
         )
         return BIPSummary(
@@ -344,7 +348,7 @@ def fetch_and_move(
         logging.error(error_msg)
         _safe_notify(
             email_sender,
-            subject=" - Error Notification",
+            subject=f"[{_now_str()}] [{bip_name}] Fetcher error",
             body=error_msg,
         )
         return BIPSummary(
@@ -418,7 +422,7 @@ def main() -> None:
             logging.error(error_msg)
             _safe_notify(
                 email_sender,
-                subject=" - Error Notification",
+                subject=f"[{_now_str()}] [{bip_name}] Secrets fetch error",
                 body=error_msg,
             )
             summaries.append(
@@ -448,7 +452,7 @@ def main() -> None:
         html_body = _build_summary_html(summaries)
         text_body = _build_summary_text(summaries)
         email_sender.send(
-            subject="Hourly Summary",
+            subject=f"[{_now_str()}] Hourly Summary",
             body=text_body,
             html=html_body,
         )

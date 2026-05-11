@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+from datetime import datetime
 from pathlib import Path
 
 import paramiko
@@ -35,14 +36,20 @@ class Fetcher:
         except Exception as e:
             error_msg = f"Failed to initialize Google Cloud Storage client: {e}"
             logging.error(error_msg)
-            self._safe_notify(subject=" - Error Notification", body=error_msg)
+            self._safe_notify(
+                    subject=f"[{self._now_str()}] [{self.bip_name}] GCS init failed",
+                    body=error_msg,
+                )
             raise RuntimeError(error_msg)
 
         logging.info(f"Checking if local_path exists: {self.local_path}")
         if not os.path.exists(self.local_path):
             error_msg = f"Required directory '{self.local_path}' does not exist."
             logging.fatal(error_msg)
-            self._safe_notify(subject=" - Error Notification", body=error_msg)
+            self._safe_notify(
+                subject=f"[{self._now_str()}] [{self.bip_name}] Local path not found",
+                body=error_msg,
+            )
             raise RuntimeError(error_msg)
 
         logging.info(
@@ -51,6 +58,10 @@ class Fetcher:
             f"local_path={self.local_path}, path_to_key={self.path_to_key}, "
             f"target_file_type={self.target_file_type}, remote_path={self.remote_path}"
         )
+
+    @staticmethod
+    def _now_str() -> str:
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def _safe_notify(self, *, subject: str, body: str) -> None:
         """
@@ -80,7 +91,10 @@ class Fetcher:
         except Exception as e:
             error_msg = f"Failed to upload file {file_path.name}: {e}"
             logging.error(error_msg)
-            self._safe_notify(subject=" - Error Notification", body=error_msg)
+            self._safe_notify(
+                subject=f"[{self._now_str()}] [{self.bip_name}] Upload failed",
+                body=error_msg,
+            )
             return False
 
     def fetch_files(self) -> BIPSummary:
@@ -112,7 +126,10 @@ class Fetcher:
             if not self.path_to_key:
                 error_msg = "SFTP key path not provided; this script requires key-based authentication."
                 logging.fatal(error_msg)
-                self._safe_notify(subject=" - Error Notification", body=error_msg)
+                self._safe_notify(
+                    subject=f"[{self._now_str()}] [{self.bip_name}] Key path missing",
+                    body=error_msg,
+                )
                 duration = time.perf_counter() - overall_start
                 return BIPSummary(
                     bip_name=self.bip_name,
@@ -179,7 +196,10 @@ class Fetcher:
                 elif key_load_error:
                     error_msg += f": {key_load_error}"
                 logging.fatal(error_msg)
-                self._safe_notify(subject=" - Error Notification", body=error_msg)
+                self._safe_notify(
+                    subject=f"[{self._now_str()}] [{self.bip_name}] Key load failed",
+                    body=error_msg,
+                )
                 duration = time.perf_counter() - overall_start
                 return BIPSummary(
                     bip_name=self.bip_name,
@@ -204,7 +224,10 @@ class Fetcher:
         except Exception as e:
             error_msg = f"Failed to connect to {self.hostname}: {e}"
             logging.fatal(error_msg)
-            self._safe_notify(subject=" - Error Notification", body=error_msg)
+            self._safe_notify(
+                subject=f"[{self._now_str()}] [{self.bip_name}] Connection failed",
+                body=error_msg,
+            )
             duration = time.perf_counter() - overall_start
             return BIPSummary(
                 bip_name=self.bip_name,
@@ -233,7 +256,7 @@ class Fetcher:
                     f"No {self.target_file_type} file(s) found in path '{self.remote_path}'.  Exiting..."
                 )
                 self._safe_notify(
-                    subject=" - No Files Found",
+                    subject=f"[{self._now_str()}] [{self.bip_name}] No files found",
                     body=(
                         f"[BIP: {self.bip_name}] No {self.target_file_type} file(s) found "
                         f"in remote path '{self.remote_path}' on host {self.hostname}."
@@ -261,7 +284,10 @@ class Fetcher:
             except Exception as e:
                 error_msg = f"Could not access GCS bucket '{self.bucket_name}': {e}"
                 logging.fatal(error_msg)
-                self._safe_notify(subject=" - Error Notification", body=error_msg)
+                self._safe_notify(
+                    subject=f"[{self._now_str()}] [{self.bip_name}] Bucket access failed",
+                    body=error_msg,
+                )
                 duration = time.perf_counter() - overall_start
                 return BIPSummary(
                     bip_name=self.bip_name,
@@ -327,7 +353,10 @@ class Fetcher:
                         f"from '{remote_file_path}' to '{local_file_path}': {e}"
                     )
                     logging.error(error_msg)
-                    self._safe_notify(subject=" - Error Notification", body=error_msg)
+                    self._safe_notify(
+                        subject=f"[{self._now_str()}] [{self.bip_name}] Download failed",
+                        body=error_msg,
+                    )
                     failed_downloads.append(
                         FileResult(
                             name=file_name,
