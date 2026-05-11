@@ -399,33 +399,45 @@ def main() -> None:
 
     # init path to gcs credentials file
     path_to_gcs_file = Path(__file__).resolve().parents[1] / "config" / "gcs.json"
+    if not path_to_gcs_file.exists():
+        logging.error(f"GCS credentials file not found at: {path_to_gcs_file}")
+        sys.exit(1)
 
-    try:
-        bip_secrets = {
-            bip_name: _secrets_dict_at_path(
+    summaries: list[BIPSummary] = []
+    for bip_name, secret_path in BIP_JOBS:
+        try:
+            sc_dct = _secrets_dict_at_path(
                 client,
                 project_id=project_id,
                 project_slug=project_slug,
                 environment_slug=environment_slug,
                 secret_path=secret_path,
             )
-            for bip_name, secret_path in BIP_JOBS
-        }
-    except Exception as e:
-        error_msg = f"Error fetching secrets from Infisical: {e}"
-        logging.error(error_msg)
-        _safe_notify(
-            email_sender,
-            subject=" - Error Notification",
-            body=error_msg,
-        )
-        return
+        except Exception as e:
+            error_msg = f"Error fetching secrets for {bip_name}: {e}"
+            logging.error(error_msg)
+            _safe_notify(
+                email_sender,
+                subject=" - Error Notification",
+                body=error_msg,
+            )
+            summaries.append(
+                BIPSummary(
+                    bip_name=bip_name,
+                    files_found=0,
+                    downloaded=[],
+                    deleted=[],
+                    failed_downloads=[],
+                    failed_deletions=[],
+                    duration_s=0.0,
+                    status="failed",
+                )
+            )
+            continue
 
-    summaries: list[BIPSummary] = []
-    for bip_name, _secret_path in BIP_JOBS:
         summary = fetch_and_move(
             bip_name=bip_name,
-            sc_dct=bip_secrets[bip_name],
+            sc_dct=sc_dct,
             path_to_gcs_file=path_to_gcs_file,
             email_sender=email_sender,
         )
@@ -443,7 +455,6 @@ def main() -> None:
         logging.info("Daily summary email sent successfully.")
     except Exception as e:
         logging.error(f"Failed to send daily summary email: {e}")
-        sys.exit(1)
 
 
 if __name__ == "__main__":
