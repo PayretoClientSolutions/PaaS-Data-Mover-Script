@@ -39,17 +39,19 @@ class BIPSummary:
 @dataclass
 class SFTPConfig:
     """
-    configuration for SFTP connections per BIP.
+    Connection and storage settings for one BIP transfer.
 
     Attributes:
-        hostname (str): The hostname of the SFTP server.
-        username (str): The username for SFTP authentication.
-        port (int): The port number for the SFTP connection.
-        key_passphrase (str): The passphrase for the SFTP private key file.
-        path_to_key (str): The path to the private key file for key-based authentication.
-        local_path (str): The local directory path for file downloads.
-        target_file_type (str): The target file type for processing, default is ".csv".
-        remote_path (str): The remote directory path on the SFTP server, default is "/REPORTS".
+        hostname: SFTP server hostname.
+        username: Username for key-based SFTP authentication.
+        port: SFTP server port.
+        key_passphrase: Passphrase for the private key file.
+        path_to_key: Local path to the private key file.
+        local_path: Existing local directory used for downloads before upload.
+        bucket_name: Destination GCS bucket.
+        path_to_gcs_credentials: Local path to the GCS service account key.
+        target_file_type: Remote file suffix to process.
+        remote_path: Remote SFTP directory to scan.
     """
     hostname: str
     username: str
@@ -69,16 +71,16 @@ class EmailConfig:
     Configuration for SMTP email sending.
 
     Attributes:
-        host (str): SMTP server hostname.
-        port (int): SMTP server port (e.g., 587 for STARTTLS, 465 for SSL).
-        username (str): SMTP username (optional if server allows anonymous or IP-based relaying).
-        password (str): SMTP password (optional).
-        from_addr (str): The sender email address (From header).
-        to_addrs (List[str]): List of recipient email addresses.
-        use_tls (bool): Use STARTTLS after connecting (default: True).
-        use_ssl (bool): Use implicit SSL (SMTPS) (default: False). If True, STARTTLS is ignored.
-        subject_prefix (str): Optional subject prefix for all messages (e.g., "[PaaS-Data-Mover]").
-        app_name (str): Optional application name used in default subjects for exception emails.
+        host: SMTP server hostname.
+        port: SMTP server port, such as 587 for STARTTLS or 465 for SSL.
+        username: SMTP username, if authentication is required.
+        password: SMTP password, if authentication is required.
+        from_addr: Sender email address used in the From header.
+        to_addrs: Default recipient email addresses.
+        use_tls: Upgrade the connection with STARTTLS after connecting.
+        use_ssl: Use implicit SSL from connection start. If true, STARTTLS is ignored.
+        subject_prefix: Optional prefix for all outbound message subjects.
+        app_name: Application name used in generated exception subjects.
     """
 
     host: str
@@ -99,10 +101,10 @@ class InfisicalConfig:
     Configuration for Infisical SDK client.
 
     Attributes:
-        client (InfisicalSDKClient): An instance of the InfisicalSDKClient configured with the host and token.
-        project_id (str): The Infisical project ID.
-        project_slug (str): The Infisical project slug.
-        environment_slug (str): The Infisical environment slug (e.g., "dev")
+        client: InfisicalSDKClient configured with the host and token.
+        project_id: Infisical project ID.
+        project_slug: Infisical project slug.
+        environment_slug: Infisical environment slug, such as "dev".
     """
 
     client: InfisicalSDKClient
