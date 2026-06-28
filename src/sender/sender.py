@@ -38,6 +38,14 @@ class Sender:
         self.config = config
 
     def _connect(self) -> smtplib.SMTP:
+        """
+        Open and authenticate an SMTP connection using the configured security mode.
+
+        Raises:
+            ValueError: If the SMTP host or port is invalid.
+            RuntimeError: If STARTTLS is required but unsupported by the server.
+            smtplib.SMTPException: If connection, TLS, or authentication fails.
+        """
         host = (self.config.host or "").strip()
         if not host or host.startswith("."):
             raise ValueError(
@@ -70,12 +78,19 @@ class Sender:
         return server
 
     def _format_subject(self, subject: str) -> str:
+        """Apply the configured subject prefix once."""
         prefix = (self.config.subject_prefix or "").strip()
         if prefix and not subject.startswith(prefix):
             return f"{prefix} {subject}"
         return subject
 
     def _ensure_recipients(self, to_addrs: Optional[Iterable[str]]) -> list[str]:
+        """
+        Return non-empty recipients from an override or the default config.
+
+        Raises:
+            ValueError: If no recipients are configured or provided.
+        """
         recipients = [
             r.strip()
             for r in (to_addrs or self.config.to_addrs)
@@ -95,6 +110,9 @@ class Sender:
     ) -> None:
         """
         Send an email message.
+
+        Attachment read failures are logged and skipped. SMTP send failures are
+        logged and re-raised for the caller to handle.
 
         Args:
             subject: Email subject line.

@@ -27,9 +27,7 @@ BIP_JOBS: list[tuple[str, str]] = [
 
 
 def init_logger() -> None:
-    """
-    Initializes the logger for the whole script
-    """
+    """Append logs to app.log and echo them to the console."""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
@@ -55,22 +53,25 @@ def init_sender(
     app_name: str,
 ) -> Sender:
     """
-    Initializes the Sender class for email notifications.
+    Build the email sender from SMTP settings.
+
+    The returned sender is configured only; it does not open an SMTP connection
+    until an email is sent.
 
     Args:
-        host (str): The SMTP server host.
-        port (int): The SMTP server port.
-        username (str): The SMTP server username.
-        password (str): The SMTP server password.
-        from_addr (str): The email address to send from.
-        to_addrs (list[str]): The list of email addresses to send to.
-        use_tls (bool): Whether to use TLS for the SMTP connection.
-        use_ssl (bool): Whether to use SSL for the SMTP connection.
-        subject_prefix (str): The prefix to add to the email subject.
-        app_name (str): The name of the application sending the email.
+        host: SMTP server host.
+        port: SMTP server port.
+        username: SMTP username.
+        password: SMTP password.
+        from_addr: Email address used as the From header.
+        to_addrs: Recipient email addresses.
+        use_tls: Whether to upgrade the connection with STARTTLS.
+        use_ssl: Whether to use implicit TLS from connection start.
+        subject_prefix: Prefix added to outbound email subjects.
+        app_name: Application name used in generated exception subjects.
 
     Returns:
-        Sender: An instance of the Sender class configured with SMTP settings.
+        Configured Sender instance.
     """
     email_cfg = EmailConfig(
         host=host,
@@ -90,10 +91,13 @@ def init_sender(
 
 def init_infisical_client() -> InfisicalConfig:
     """
-    Initializes the Infisical SDK client for fetching secrets.
+    Load Infisical bootstrap settings and create a secrets client.
+
+    The bootstrap values are read from config/.env. If that file is missing,
+    the script logs the problem and exits.
 
     Returns:
-        InfisicalConfig: An instance of the InfisicalConfig configured with the necessary parameters.
+        Infisical client plus project and environment identifiers.
     """
 
     # read environment variables from .env file
@@ -126,20 +130,12 @@ def init_infisical_client() -> InfisicalConfig:
 
 
 def _now_str() -> str:
-    """
-    Returns the current date and time as a formatted string.
-
-    Returns:
-        str: The current date and time in the format "%Y-%m-%d %H:%M:%S".
-    """
+    """Return the current local timestamp for logs and email subjects."""
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 def _safe_notify(email_sender: Sender, *, subject: str, body: str) -> None:
-    """
-    Sends an email notification without masking the original error path
-    if SMTP delivery fails.
-    """
+    """Send an email notification without propagating SMTP failures."""
     try:
         email_sender.send(subject=subject, body=body)
     except Exception as notify_error:
@@ -154,12 +150,7 @@ def _secrets_dict_at_path(
     environment_slug: str,
     secret_path: str,
 ) -> dict[str, str]:
-    """
-    Fetches secrets from Infisical at a given path.
-
-    Returns:
-        dict[str, str]: A dictionary of secrets with the secret key as the key and the secret value as the value.
-    """
+    """Return Infisical secrets at secret_path as a key/value dictionary."""
     rows = client.secrets.list_secrets(
         project_id=project_id,
         project_slug=project_slug,
@@ -179,9 +170,7 @@ def _status_emoji(status: str) -> str:
 
 
 def _build_summary_text(summaries: list[BIPSummary]) -> str:
-    """
-    Build plain-text fallback body for the summary email.
-    """
+    """Build the plain-text fallback body for the summary email."""
     lines = [
         "PaaS Data Extraction Script - Hourly Summary",
         "=====================",
@@ -204,9 +193,7 @@ def _build_summary_text(summaries: list[BIPSummary]) -> str:
 
 
 def _build_summary_html(summaries: list[BIPSummary]) -> str:
-    """
-    Build an HTML summary email body.
-    """
+    """Build the HTML body for the summary email."""
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     rows_html = []
     for s in summaries:
@@ -289,13 +276,19 @@ def fetch_and_move(
     email_sender: Sender,
 ) -> BIPSummary:
     """
-    Fetches files via SFTP and moves them to GCS.
-    Parameters:
-        bip_name (str): Name of the BIP
-        sc_dct (dict[str, str]): Secrets dictionary
-        path_to_gcs_file (Path): Path to GCS credentials file
+    Run one BIP transfer from SFTP to GCS using secrets from Infisical.
+
+    Invalid configuration and Fetcher failures are logged, reported by email,
+    and converted into a failed BIPSummary instead of aborting the full job run.
+
+    Args:
+        bip_name: Name used in logs, notifications, and summaries.
+        sc_dct: Secret values for this BIP path.
+        path_to_gcs_file: Local GCS service account credentials file.
+        email_sender: Sender used for failure notifications.
+
     Returns:
-        BIPSummary: Summary of the run
+        Summary of the BIP transfer attempt.
     """
 
     raw_port = sc_dct.get("PORT", "22")
@@ -387,6 +380,8 @@ def fetch_and_move(
 
 
 def main() -> None:
+    """Run all configured BIP jobs and send the hourly summary email."""
+
     # Start logging both in the terminal and the log file.
     init_logger()
     logging.info("Script started.")

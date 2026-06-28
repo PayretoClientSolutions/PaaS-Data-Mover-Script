@@ -12,9 +12,17 @@ from sender import Sender
 
 
 class Fetcher:
+    """Move matching files for one BIP from SFTP into a GCS bucket."""
+
     def __init__(
         self, config: SFTPConfig, email_sender: Sender, bip_name: str = "UNKNOWN"
     ) -> None:
+        """
+        Initialize GCS access and validate the local download directory.
+
+        Raises:
+            RuntimeError: If the GCS client cannot be created or local_path is missing.
+        """
         self.hostname = config.hostname
         self.email_sender = email_sender
         self.bip_name = bip_name
@@ -61,13 +69,11 @@ class Fetcher:
 
     @staticmethod
     def _now_str() -> str:
+        """Return the current local timestamp for logs and email subjects."""
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def _safe_notify(self, *, subject: str, body: str) -> None:
-        """
-        Sends notification email without interrupting error handling
-        when SMTP delivery itself fails.
-        """
+        """Send a notification email without propagating SMTP failures."""
         try:
             self.email_sender.send(subject=subject, body=body)
         except Exception as notify_error:
@@ -75,10 +81,11 @@ class Fetcher:
 
     def _upload_file_to_gcs(self, file_path: Path, bucket) -> bool:
         """
-        Uploads a file to Google Cloud Storage.
-        Returns True if upload is successful, False otherwise.
-        This function assumes that the GCS bucket already exists.
-        The GCS credentials file renamed to 'gcs.json' must be located in the current working directory.
+        Upload one local file to an existing GCS bucket.
+
+        Returns True when the upload succeeds. On failure, logs the error,
+        sends a notification, and returns False so the caller can retain the
+        local file and skip remote deletion.
         """
 
         # Upload the file.
@@ -99,8 +106,16 @@ class Fetcher:
 
     def fetch_files(self) -> BIPSummary:
         """
-        Connects to the remote server and fetches files from the specified remote path to the local path.
-        Returns a BIPSummary capturing the results of the run.
+        Fetch matching remote files, upload them to GCS, and clean up.
+
+        Only files ending with target_file_type are processed. Each file is
+        downloaded locally, uploaded to GCS, removed locally after upload
+        success, and deleted from SFTP only after the GCS upload succeeds.
+        Per-file failures are recorded in the returned summary instead of
+        aborting the rest of the BIP run.
+
+        Returns:
+            Summary of downloaded, deleted, and failed file operations.
         """
         # Result tracking lists
         downloaded: list[FileResult] = []
