@@ -56,6 +56,19 @@ def init_sender(
 ) -> Sender:
     """
     Initializes the Sender class for email notifications.
+
+    Args:
+        host (str): The SMTP server host.
+        port (int): The SMTP server port.
+        username (str): The SMTP server username.
+        password (str): The SMTP server password.
+        from_addr (str): The email address to send from.
+        to_addrs (list[str]): The list of email addresses to send to.
+        use_tls (bool): Whether to use TLS for the SMTP connection.
+        use_ssl (bool): Whether to use SSL for the SMTP connection.
+        subject_prefix (str): The prefix to add to the email subject.
+        app_name (str): The name of the application sending the email.
+
     Returns:
         Sender: An instance of the Sender class configured with SMTP settings.
     """
@@ -78,6 +91,7 @@ def init_sender(
 def init_infisical_client() -> InfisicalConfig:
     """
     Initializes the Infisical SDK client for fetching secrets.
+
     Returns:
         InfisicalConfig: An instance of the InfisicalConfig configured with the necessary parameters.
     """
@@ -112,6 +126,12 @@ def init_infisical_client() -> InfisicalConfig:
 
 
 def _now_str() -> str:
+    """
+    Returns the current date and time as a formatted string.
+
+    Returns:
+        str: The current date and time in the format "%Y-%m-%d %H:%M:%S".
+    """
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -136,6 +156,7 @@ def _secrets_dict_at_path(
 ) -> dict[str, str]:
     """
     Fetches secrets from Infisical at a given path.
+
     Returns:
         dict[str, str]: A dictionary of secrets with the secret key as the key and the secret value as the value.
     """
@@ -158,7 +179,9 @@ def _status_emoji(status: str) -> str:
 
 
 def _build_summary_text(summaries: list[BIPSummary]) -> str:
-    """Build plain-text fallback body for the summary email."""
+    """
+    Build plain-text fallback body for the summary email.
+    """
     lines = [
         "PaaS Data Extraction Script - Hourly Summary",
         "=====================",
