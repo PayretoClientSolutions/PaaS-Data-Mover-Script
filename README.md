@@ -1,105 +1,120 @@
 # move-it
 
-Scheduled job that pulls report files from **SFTP** (one integration per BIP), uploads them to **Google Cloud Storage**, then removes the local copy after a successful upload and deletes the file on the remote server.
+`move-it` is a scheduled batch job that moves report files from partner SFTP servers to Google Cloud Storage (GCS). Each configured BIP is processed independently so one failed integration does not stop the remaining jobs.
 
-## What it does
+## Transfer flow
 
-1. Loads a small set of variables from `config/.env` and connects to **Infisical** (EU: `https://eu.infisical.com`) to load the rest of the secrets.
-2. Configures **SMTP** from the `/SMTP` secret path and builds an email sender for error notifications.
-3. For each configured BIP, loads SFTP and GCS-related secrets from that BIP’s Infisical folder, then runs the **Fetcher**:
-   - Connects with **key-based SSH/SFTP** (private key path and optional key passphrase from secrets).
-   - Lists files in the remote directory (default `/REPORTS`), keeps those matching the target extension (default `.csv`).
-   - Downloads each file to a local directory, uploads it to the **GCS bucket** named in secrets, deletes the local file if upload succeeds, then removes the remote file.
+For each BIP, the script:
 
-The app is intended to run on a **Linux VM** under **cron**, similar to other batch jobs.
+1. Connects to SFTP using a local private key.
+2. Lists the configured remote directory and selects files matching the configured suffix.
+3. Downloads each matching file to an existing local staging directory.
+4. Uploads the file to the configured GCS bucket using the filename as the blob name.
+5. Deletes the local copy after a successful upload.
+6. Deletes the remote file after the local copy has been removed.
 
-## Project layout
+An upload failure retains both the local and remote copies. A remote deletion failure is recorded but does not stop later files. Reusing a filename in the same bucket overwrites the existing GCS object.
 
-| Path | Role |
-|------|------|
-| `config/.env` | Infisical token, project identifiers, environment (not committed; create locally). |
-| `config/gcs.json` | GCS service account key; referenced as `GOOGLE_APPLICATION_CREDENTIALS` when fetching. |
-| `src/main.py` | Entry point: Infisical, SMTP, per-BIP `fetch_and_move`. |
-| `src/fetcher/` | SFTP download + GCS upload logic. |
-| `src/sender/` | SMTP helper for alerts. |
-| `src/models/` | `SFTPConfig`, `EmailConfig`, `InfisicalConfig`. |
+The script sends notifications for operational failures and BIPs with no matching files, then sends an HTML and plain-text summary after all BIPs have run. Notification failures are logged without aborting processing.
 
-Logs go to **`app.log`** in the process working directory and to the console.
+## Requirements
 
-## Prerequisites
+- Python 3.12+
+- [`uv`](https://docs.astral.sh/uv/)
+- Network access to the EU Infisical host, configured SFTP servers, GCS, and `smtp.gmail.com:587`
+- Readable SFTP private keys on the machine running the job
+- A GCS service-account credentials file
 
-- **Python 3.12+** (see `requires-python` in `pyproject.toml`).
-- **[uv](https://github.com/astral-sh/uv)** (or another way to install dependencies from `pyproject.toml`).
-- Network access to Infisical, SFTP endpoints, Gmail SMTP (as configured in code), and GCS.
-- On the VM: SSH private key file paths referenced in Infisical must exist and be readable. The SFTP side expects **Ed25519** or **4096-bit RSA** keys where applicable.
-
-## Configuration
-
-### `config/.env` (local)
-
-Used to bootstrap Infisical. Typical variables (names must match what `src/main.py` reads):
-
-- `INFISICAL_TOKEN`
-- `INFISICAL_PROJECT_ID`
-- `INFISICAL_PROJECT_SLUG` — project slug
-- `INFISICAL_ENVIRONMENT` — defaults to `dev` if unset
-
-### Infisical: `/SMTP`
-
-Secrets supply Gmail (or compatible) SMTP credentials and message defaults:
-
-- `USERNAME`, `PASSWORD`, `FROM_ADDR`
-- `TO_ADDRS` — comma-separated recipient list
-- `SUBJECT_PREFIX`, `APP_NAME`
-
-SMTP host and port are set in code (`smtp.gmail.com`, `587`, STARTTLS).
-
-### Infisical: per-BIP folders
-
-The app loads secrets from paths such as `/prtpe`, `/prtso`, `/solid`, and `/bige` (and separate `*_test` paths for test environments; whether those runs are enabled depends on `main.py`).
-
-Each BIP folder should provide keys that map to **SFTPConfig**, for example:
-
-- `HOSTNAME`, `USERNAME`, `PORT`, `PASSWORD`
-- `PATH_TO_KEY` — local path to the SFTP private key
-- `LOCAL_PATH` — directory for temporary downloads (must exist before the run)
-- `BUCKET_NAME` — GCS bucket for uploads
-
-Optional overrides (defaults are in `SFTPConfig` in `src/models/models.py`):
-
-- `TARGET_FILE_TYPE` / remote path — only if you extend secrets to pass them through (today defaults are `.csv` and `/REPORTS` unless your Infisical mapping adds them).
-
-GCS authentication uses **`config/gcs.json`** at the repository root’s `config/` directory, not a secret path inside each BIP dict.
-
-## BIPs in the current script
-
-`main.py` runs production BIPs in this order: **PRTPE**, **PRTSO**, **SOLID**, **BIGE**. All entries live in `BIP_JOBS`; remove or reorder rows there if you want to skip or change run order.
-
-## Logging and operations
-
-- **Log file**: `app.log` (append). Ensure the cron working directory is predictable, or consider switching to an absolute log path in code if logs go missing.
-- **Monitoring**: Watch for SFTP/GCS failures and email alerts; keep disk space available under each BIP’s `LOCAL_PATH`.
-- **GCS**: Objects are uploaded using the **file name only** as the blob name; same name in the same bucket will overwrite previous objects.
-
-## Dependencies
-
-Declared in `pyproject.toml`, including:
-
-- `google-cloud-storage` — GCS uploads
-- `infisicalsdk` — secrets
-- `paramiko` — SFTP
-- `python-dotenv` — load `config/.env`
-
-Install with uv from the repo root, for example:
+Install the dependencies from the repository root:
 
 ```bash
 uv sync
 ```
 
-From the repository root (Python puts `src/` on the module path when running `src/main.py`):
+## Configuration
+
+The two local configuration files below are gitignored and must exist before the script starts.
+
+### `config/.env`
+
+This file bootstraps the Infisical SDK:
+
+```dotenv
+INFISICAL_TOKEN=
+INFISICAL_PROJECT_ID=
+INFISICAL_PROJECT_SLUG=
+INFISICAL_ENVIRONMENT=dev
+```
+
+`INFISICAL_ENVIRONMENT` is optional and defaults to `dev`. All remaining secrets are loaded from `https://eu.infisical.com`.
+
+### `config/gcs.json`
+
+Place the GCS service-account credentials at `config/gcs.json`. The script sets this path as `GOOGLE_APPLICATION_CREDENTIALS` while initializing each BIP's GCS client.
+
+### Infisical `/SMTP`
+
+The `/SMTP` path supplies:
+
+- `USERNAME`
+- `PASSWORD`
+- `FROM_ADDR`
+- `TO_ADDRS`, as a comma-separated list
+- `SUBJECT_PREFIX`
+- `APP_NAME`
+
+The SMTP server is fixed to Gmail on port 587 with STARTTLS.
+
+### Infisical BIP paths
+
+Production jobs currently run in this order:
+
+| BIP | Secret path |
+| --- | --- |
+| PRTPE | `/prtpe` |
+| PRTSO | `/prtso` |
+| SOLID | `/solid` |
+| BIGE | `/bige` |
+
+Each path supports these values:
+
+| Key | Purpose | Default |
+| --- | --- | --- |
+| `HOSTNAME` | SFTP hostname | none |
+| `USERNAME` | SFTP username | none |
+| `PORT` | SFTP port | `22` |
+| `PASSWORD` | Private-key passphrase, not an SFTP password | empty |
+| `PATH_TO_KEY` | Local private-key path | required |
+| `LOCAL_PATH` | Existing local staging directory | `.` |
+| `BUCKET_NAME` | Destination GCS bucket | none |
+| `TARGET_FILE_TYPE` | Filename suffix to process | `.csv` |
+| `REMOTE_PATH` | Remote directory to scan | `/REPORTS` |
+
+`PATH_TO_KEY` and `LOCAL_PATH` expand `~`. Authentication is key-only: RSA is attempted before Ed25519, and RSA keys must be exactly 4096 bits.
+
+Enabled jobs and their order are controlled by `BIP_JOBS` in `src/main.py`. Commented entries are available for the separate `*_test` Infisical paths.
+
+## Running
+
+Run the entrypoint directly from the repository root:
 
 ```bash
 uv run python src/main.py
 ```
 
-Adjust if your deployment uses a different working directory or wrapper script.
+Direct execution is required by the current top-level imports under `src/`; the project does not define an installed CLI entrypoint.
+
+This command performs real downloads, uploads, deletions, and email sends. Use test BIP entries and test credentials when validating changes rather than running the production job list.
+
+The script appends logs to `app.log` at the repository root and also writes them to the console. Per-file and per-BIP failures are included in the final summary instead of terminating the full run.
+
+## Project layout
+
+| Path | Responsibility |
+| --- | --- |
+| `src/main.py` | Infisical setup, job orchestration, and summary generation |
+| `src/fetcher/` | SFTP download, GCS upload, and file cleanup |
+| `src/sender/` | SMTP messages |
+| `src/models/` | Runtime configuration and result dataclasses |
+
+No automated test, lint, formatter, or typecheck command is currently configured.
