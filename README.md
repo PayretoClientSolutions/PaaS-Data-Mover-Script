@@ -25,7 +25,7 @@ The script sends notifications for operational failures and BIPs with no matchin
 - Readable SFTP private keys on the machine running the job
 - A GCS service-account credentials file
 
-Install the runtime and development dependencies from the repository root:
+Install the runtime and development dependencies, including Ruff, from the repository root:
 
 ```bash
 uv sync
@@ -110,12 +110,22 @@ The script appends logs to `app.log` at the repository root and also writes them
 
 ## Development checks
 
-Run Ruff and the offline regression tests from the repository root:
+Ruff is the local linter and formatter. Run the lint, format, and offline regression checks from the repository root before submitting changes:
 
 ```bash
 uv run ruff check .
+uv run ruff format --check .
 uv run python -m unittest discover -s tests -v
 ```
+
+To apply safe lint fixes and format the code locally:
+
+```bash
+uv run ruff check --fix .
+uv run ruff format .
+```
+
+Rerun the checks after applying fixes. Ruff is provided by the `dev` dependency group in `pyproject.toml` and is installed by `uv sync`.
 
 The tests mock external integrations and do not perform SFTP, GCS, or SMTP operations.
 
