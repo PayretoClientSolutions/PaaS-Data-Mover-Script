@@ -13,6 +13,8 @@ from models import BIPSummary, SFTPConfig
 from models.models import EmailConfig, InfisicalConfig
 from sender import Sender
 
+logger = logging.getLogger(__name__)
+
 # BIP label (for logs / email) and Infisical secret_path. Order is run order.
 BIP_JOBS: list[tuple[str, str]] = [
     # ("PRTPE_TEST", "/prtpe_test"),
@@ -103,13 +105,13 @@ def init_infisical_client() -> InfisicalConfig:
     # read environment variables from .env file
     env_path = Path(__file__).resolve().parents[1] / "config" / ".env"
     if not env_path.exists():
-        logging.error(f"Environment file not found at: {env_path}")
+        logger.error(f"Environment file not found at: {env_path}")
         sys.exit(1)
 
     load_dotenv(env_path)
 
     try:
-        logging.info("Fetching secrets from Infisical...")
+        logger.info("Fetching secrets from Infisical...")
         client = InfisicalSDKClient(
             host="https://eu.infisical.com", token=os.environ.get("INFISICAL_TOKEN", "")
         )
@@ -124,22 +126,22 @@ def init_infisical_client() -> InfisicalConfig:
             project_slug=project_slug,
             environment_slug=environment_slug,
         )
-    except Exception as e:
-        logging.error(f"Error initializing Infisical client: {e}")
+    except Exception as e:  # Preserve SDK error details for the caller.
+        logger.error(f"Error initializing Infisical client: {e}")
         raise
 
 
 def _now_str() -> str:
     """Return the current local timestamp for logs and email subjects."""
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # noqa: DTZ005
 
 
 def _safe_notify(email_sender: Sender, *, subject: str, body: str) -> None:
     """Send an email notification without propagating SMTP failures."""
     try:
         email_sender.send(subject=subject, body=body)
-    except Exception as notify_error:
-        logging.error(f"Failed to send notification email: {notify_error}")
+    except Exception as notify_error:  # noqa: BLE001 - notifications must not abort work
+        logger.error(f"Failed to send notification email: {notify_error}")
 
 
 def _secrets_dict_at_path(
@@ -194,7 +196,7 @@ def _build_summary_text(summaries: list[BIPSummary]) -> str:
 
 def _build_summary_html(summaries: list[BIPSummary]) -> str:
     """Build the HTML body for the summary email."""
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # noqa: DTZ005
     rows_html = []
     for s in summaries:
         rows_html.append(
@@ -298,7 +300,7 @@ def fetch_and_move(
         error_msg = (
             f"Invalid PORT value for {bip_name}: '{raw_port}'. PORT must be an integer."
         )
-        logging.error(error_msg)
+        logger.error(error_msg)
         _safe_notify(
             email_sender,
             subject=f"[{_now_str()}] [{bip_name}] Port validation error",
@@ -330,7 +332,7 @@ def fetch_and_move(
     )
 
     # initialize Fetcher class
-    logging.info(f"> > > > > FETCHER task started for {bip_name} < < < < <")
+    logger.info(f"> > > > > FETCHER task started for {bip_name} < < < < <")
 
     try:
         fetcher = Fetcher(
@@ -342,7 +344,7 @@ def fetch_and_move(
 
     except SystemExit as e:
         error_msg = f"SystemExit occurred while running Fetcher for {bip_name}: {e}"
-        logging.error(error_msg)
+        logger.error(error_msg)
         _safe_notify(
             email_sender,
             subject=f"[{_now_str()}] [{bip_name}] SystemExit occurred",
@@ -359,9 +361,9 @@ def fetch_and_move(
             status="failed",
         )
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - isolate failures to one BIP
         error_msg = f"Error occurred while running Fetcher for {bip_name}: {e}"
-        logging.error(error_msg)
+        logger.error(error_msg)
         _safe_notify(
             email_sender,
             subject=f"[{_now_str()}] [{bip_name}] Fetcher error",
@@ -384,7 +386,7 @@ def main() -> None:
 
     # Start logging both in the terminal and the log file.
     init_logger()
-    logging.info("Script started.")
+    logger.info("Script started.")
 
     # init infisical client for fetching secrets
     infisical_config = init_infisical_client()
@@ -415,14 +417,14 @@ def main() -> None:
             subject_prefix=sc_dct_email.get("SUBJECT_PREFIX", ""),
             app_name=sc_dct_email.get("APP_NAME", ""),
         )
-    except Exception as e:
-        logging.error(f"Error initializing email sender: {e}")
+    except Exception as e:  # noqa: BLE001 - initialization failures terminate cleanly
+        logger.error(f"Error initializing email sender: {e}")
         sys.exit(1)
 
     # init path to gcs credentials file
     path_to_gcs_file = Path(__file__).resolve().parents[1] / "config" / "gcs.json"
     if not path_to_gcs_file.exists():
-        logging.error(f"GCS credentials file not found at: {path_to_gcs_file}")
+        logger.error(f"GCS credentials file not found at: {path_to_gcs_file}")
         sys.exit(1)
 
     summaries: list[BIPSummary] = []
@@ -435,9 +437,9 @@ def main() -> None:
                 environment_slug=environment_slug,
                 secret_path=secret_path,
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - isolate secret failures to one BIP
             error_msg = f"Error fetching secrets for {bip_name}: {e}"
-            logging.error(error_msg)
+            logger.error(error_msg)
             _safe_notify(
                 email_sender,
                 subject=f"[{_now_str()}] [{bip_name}] Secrets fetch error",
@@ -474,9 +476,9 @@ def main() -> None:
             body=text_body,
             html=html_body,
         )
-        logging.info("Daily summary email sent successfully.")
-    except Exception as e:
-        logging.error(f"Failed to send daily summary email: {e}")
+        logger.info("Daily summary email sent successfully.")
+    except Exception as e:  # noqa: BLE001 - summary email failure must not mask results
+        logger.error(f"Failed to send daily summary email: {e}")
 
 
 if __name__ == "__main__":

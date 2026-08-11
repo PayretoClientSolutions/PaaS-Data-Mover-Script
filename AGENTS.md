@@ -5,10 +5,12 @@
 ```bash
 uv sync
 uv run python src/main.py
+uv run ruff check .
+uv run python -m unittest discover -s tests -v
 ```
 
 - Run commands from the repository root; direct execution puts `src/` on `sys.path` for imports such as `from fetcher import Fetcher`.
-- No test, lint, formatter, or typecheck commands are configured.
+- Regression tests are offline and use mocked integrations; the main command performs real operations and is not a routine verification command.
 
 ## Architecture
 

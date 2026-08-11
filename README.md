@@ -25,7 +25,7 @@ The script sends notifications for operational failures and BIPs with no matchin
 - Readable SFTP private keys on the machine running the job
 - A GCS service-account credentials file
 
-Install the dependencies from the repository root:
+Install the runtime and development dependencies from the repository root:
 
 ```bash
 uv sync
@@ -108,6 +108,17 @@ This command performs real downloads, uploads, deletions, and email sends. Use t
 
 The script appends logs to `app.log` at the repository root and also writes them to the console. Per-file and per-BIP failures are included in the final summary instead of terminating the full run.
 
+## Development checks
+
+Run Ruff and the offline regression tests from the repository root:
+
+```bash
+uv run ruff check .
+uv run python -m unittest discover -s tests -v
+```
+
+The tests mock external integrations and do not perform SFTP, GCS, or SMTP operations.
+
 ## Project layout
 
 | Path | Responsibility |
@@ -116,5 +127,3 @@ The script appends logs to `app.log` at the repository root and also writes them
 | `src/fetcher/` | SFTP download, GCS upload, and file cleanup |
 | `src/sender/` | SMTP messages |
 | `src/models/` | Runtime configuration and result dataclasses |
-
-No automated test, lint, formatter, or typecheck command is currently configured.
