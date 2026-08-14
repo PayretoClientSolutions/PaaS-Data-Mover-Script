@@ -25,7 +25,7 @@ The script sends notifications for operational failures and BIPs with no matchin
 - Readable SFTP private keys on the machine running the job
 - A GCS service-account credentials file
 
-Install the runtime and development dependencies, including Ruff, from the repository root:
+Install the runtime and development dependencies, including Ruff and ty, from the repository root:
 
 ```bash
 uv sync
@@ -99,7 +99,7 @@ Enabled jobs and their order are controlled by `BIP_JOBS` in `src/main.py`. Comm
 Run the entrypoint directly from the repository root:
 
 ```bash
-uv run python src/main.py
+uv run src/main.py
 ```
 
 Direct execution is required by the current top-level imports under `src/`; the project does not define an installed CLI entrypoint.
@@ -110,11 +110,12 @@ The script appends logs to `app.log` at the repository root and also writes them
 
 ## Development checks
 
-Ruff is the local linter and formatter. Run the lint, format, and offline regression checks from the repository root before submitting changes:
+Ruff is the local linter and formatter, and ty is the type checker. Run the lint, format, type, and offline regression checks from the repository root before submitting changes:
 
 ```bash
 uv run ruff check .
 uv run ruff format --check .
+uv run ty check
 uv run python -m unittest discover -s tests -v
 ```
 
@@ -125,7 +126,7 @@ uv run ruff check --fix .
 uv run ruff format .
 ```
 
-Rerun the checks after applying fixes. Ruff is provided by the `dev` dependency group in `pyproject.toml` and is installed by `uv sync`.
+Rerun the checks after applying fixes. Ruff and ty are provided by the `dev` dependency group in `pyproject.toml` and are installed by `uv sync`.
 
 The tests mock external integrations and do not perform SFTP, GCS, or SMTP operations.
 
