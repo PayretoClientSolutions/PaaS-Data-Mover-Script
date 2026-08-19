@@ -6,10 +6,14 @@
 uv sync
 uv run python src/main.py
 uv run ruff check .
+uv run ruff format --check .
+uv run ty check
 uv run python -m unittest discover -s tests -v
 ```
 
 - Run commands from the repository root; direct execution puts `src/` on `sys.path` for imports such as `from fetcher import Fetcher`.
+- Ruff and ty are installed through the `dev` dependency group by `uv sync`. Before submitting changes, run `uv run ruff check .`, `uv run ruff format --check .`, and `uv run ty check`.
+- To apply safe lint fixes and formatting locally, run `uv run ruff check --fix .` followed by `uv run ruff format .`, then rerun the checks above.
 - Regression tests are offline and use mocked integrations; the main command performs real operations and is not a routine verification command.
 
 ## Architecture
