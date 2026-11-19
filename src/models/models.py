@@ -1,7 +1,5 @@
 from dataclasses import dataclass, field
 
-from infisical_sdk import InfisicalSDKClient
-
 
 @dataclass
 class FileResult:
@@ -93,21 +91,3 @@ class EmailConfig:
     use_ssl: bool = False
     subject_prefix: str = ""
     app_name: str = ""
-
-
-@dataclass
-class InfisicalConfig:
-    """
-    Configuration for Infisical SDK client.
-
-    Attributes:
-        client: InfisicalSDKClient configured with the host and token.
-        project_id: Infisical project ID.
-        project_slug: Infisical project slug.
-        environment_slug: Infisical environment slug, such as "dev".
-    """
-
-    client: InfisicalSDKClient
-    project_id: str
-    project_slug: str
-    environment_slug: str

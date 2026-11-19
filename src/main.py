@@ -1,31 +1,19 @@
 import html
 import logging
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
 
-from dotenv import load_dotenv
-from infisical_sdk import InfisicalSDKClient
+from dotenv import dotenv_values
 
 from fetcher import Fetcher
-from models import BIPSummary, SFTPConfig
-from models.models import EmailConfig, InfisicalConfig
+from models import BIPSummary, EmailConfig, SFTPConfig
 from sender import Sender
 
 logger = logging.getLogger(__name__)
 
-# BIP label (for logs / email) and Infisical secret_path. Order is run order.
-BIP_JOBS: list[tuple[str, str]] = [
-    # ("PRTPE_TEST", "/prtpe_test"),
-    # ("PRTSO_TEST", "/prtso_test"),
-    # ("SOLID_TEST", "/solid_test"),
-    # ("BIGE_TEST", "/bige_test"),
-    ("PRTPE", "/prtpe"),
-    ("PRTSO", "/prtso"),
-    ("SOLID", "/solid"),
-    ("BIGE", "/bige"),
-]
+CONFIG_DIR = Path(__file__).resolve().parents[1] / "config"
+BIP_JOBS = ["PRTPE", "PRTSO", "SOLID", "BIGE"]
 
 
 def init_logger() -> None:
@@ -91,44 +79,18 @@ def init_sender(
     return Sender(config=email_cfg)
 
 
-def init_infisical_client() -> InfisicalConfig:
-    """
-    Load Infisical bootstrap settings and create a secrets client.
-
-    The bootstrap values are read from config/.env. If that file is missing,
-    the script logs the problem and exits.
-
-    Returns:
-        Infisical client plus project and environment identifiers.
-    """
-
-    # read environment variables from .env file
-    env_path = Path(__file__).resolve().parents[1] / "config" / ".env"
-    if not env_path.exists():
-        logger.error(f"Environment file not found at: {env_path}")
-        sys.exit(1)
-
-    load_dotenv(env_path)
-
-    try:
-        logger.info("Fetching secrets from Infisical...")
-        client = InfisicalSDKClient(
-            host="https://eu.infisical.com", token=os.environ.get("INFISICAL_TOKEN", "")
-        )
-
-        project_id = os.environ.get("INFISICAL_PROJECT_ID", "")
-        project_slug = os.environ.get("INFISICAL_PROJECT_SLUG", "")
-        environment_slug = os.environ.get("INFISICAL_ENVIRONMENT", "dev")
-
-        return InfisicalConfig(
-            client=client,
-            project_id=project_id,
-            project_slug=project_slug,
-            environment_slug=environment_slug,
-        )
-    except Exception as e:  # Preserve SDK error details for the caller.
-        logger.error(f"Error initializing Infisical client: {e}")
-        raise
+def group_settings(
+    settings: dict[str, str], prefix: str, required: tuple[str, ...]
+) -> dict[str, str]:
+    group = {
+        key.removeprefix(prefix + "_"): value
+        for key, value in settings.items()
+        if key.startswith(prefix + "_") and value != ""
+    }
+    missing = [f"{prefix}_{key}" for key in required if not group.get(key, "").strip()]
+    if missing:
+        raise ValueError("Missing required settings: " + ", ".join(missing))
+    return group
 
 
 def _now_str() -> str:
@@ -142,24 +104,6 @@ def _safe_notify(email_sender: Sender, *, subject: str, body: str) -> None:
         email_sender.send(subject=subject, body=body)
     except Exception as notify_error:  # noqa: BLE001 - notifications must not abort work
         logger.error(f"Failed to send notification email: {notify_error}")
-
-
-def _secrets_dict_at_path(
-    client: InfisicalSDKClient,
-    *,
-    project_id: str,
-    project_slug: str,
-    environment_slug: str,
-    secret_path: str,
-) -> dict[str, str]:
-    """Return Infisical secrets at secret_path as a key/value dictionary."""
-    rows = client.secrets.list_secrets(
-        project_id=project_id,
-        project_slug=project_slug,
-        environment_slug=environment_slug,
-        secret_path=secret_path,
-    ).secrets
-    return {row.secretKey: row.secretValue for row in rows}
 
 
 def _status_emoji(status: str) -> str:
@@ -278,14 +222,14 @@ def fetch_and_move(
     email_sender: Sender,
 ) -> BIPSummary:
     """
-    Run one BIP transfer from SFTP to GCS using secrets from Infisical.
+    Run one BIP transfer from SFTP to GCS using its configured credentials.
 
     Invalid configuration and Fetcher failures are logged, reported by email,
     and converted into a failed BIPSummary instead of aborting the full job run.
 
     Args:
         bip_name: Name used in logs, notifications, and summaries.
-        sc_dct: Secret values for this BIP path.
+        sc_dct: Settings for this BIP.
         path_to_gcs_file: Local GCS service account credentials file.
         email_sender: Sender used for failure notifications.
 
@@ -297,9 +241,7 @@ def fetch_and_move(
     try:
         port = int(raw_port)
     except (TypeError, ValueError):
-        error_msg = (
-            f"Invalid PORT value for {bip_name}: '{raw_port}'. PORT must be an integer."
-        )
+        error_msg = f"Invalid {bip_name}_PORT. PORT must be an integer."
         logger.error(error_msg)
         _safe_notify(
             email_sender,
@@ -388,30 +330,31 @@ def main() -> None:
     init_logger()
     logger.info("Script started.")
 
-    # init infisical client for fetching secrets
-    infisical_config = init_infisical_client()
-    client = infisical_config.client
-    project_id = infisical_config.project_id
-    project_slug = infisical_config.project_slug
-    environment_slug = infisical_config.environment_slug
-
+    env_path = CONFIG_DIR / ".env"
     try:
-        # fetch secrets for email sender
-        sc_email = client.secrets.list_secrets(
-            project_id=project_id,
-            project_slug=project_slug,
-            environment_slug=environment_slug,
-            secret_path="/SMTP",
-        ).secrets
-        sc_dct_email = {sc.secretKey: sc.secretValue for sc in sc_email}
-
+        with env_path.open(encoding="utf-8") as stream:
+            settings = {
+                key: value
+                for key, value in dotenv_values(
+                    stream=stream, interpolate=False
+                ).items()
+                if value is not None
+            }
+        sc_dct_email = group_settings(
+            settings, "SMTP", ("USERNAME", "PASSWORD", "FROM_ADDR", "TO_ADDRS")
+        )
+        recipients = [
+            addr.strip() for addr in sc_dct_email["TO_ADDRS"].split(",") if addr.strip()
+        ]
+        if not recipients:
+            raise ValueError("SMTP_TO_ADDRS requires at least one recipient")
         email_sender = init_sender(
             host="smtp.gmail.com",
             port=587,
             username=sc_dct_email.get("USERNAME", ""),
             password=sc_dct_email.get("PASSWORD", ""),
             from_addr=sc_dct_email.get("FROM_ADDR", ""),
-            to_addrs=sc_dct_email.get("TO_ADDRS", "").split(","),
+            to_addrs=recipients,
             use_tls=True,
             use_ssl=False,
             subject_prefix=sc_dct_email.get("SUBJECT_PREFIX", ""),
@@ -422,27 +365,25 @@ def main() -> None:
         sys.exit(1)
 
     # init path to gcs credentials file
-    path_to_gcs_file = Path(__file__).resolve().parents[1] / "config" / "gcs.json"
+    path_to_gcs_file = CONFIG_DIR / "gcs.json"
     if not path_to_gcs_file.exists():
         logger.error(f"GCS credentials file not found at: {path_to_gcs_file}")
         sys.exit(1)
 
     summaries: list[BIPSummary] = []
-    for bip_name, secret_path in BIP_JOBS:
+    for bip_name in BIP_JOBS:
         try:
-            sc_dct = _secrets_dict_at_path(
-                client,
-                project_id=project_id,
-                project_slug=project_slug,
-                environment_slug=environment_slug,
-                secret_path=secret_path,
+            sc_dct = group_settings(
+                settings,
+                bip_name,
+                ("HOSTNAME", "USERNAME", "PATH_TO_KEY", "BUCKET_NAME"),
             )
-        except Exception as e:  # noqa: BLE001 - isolate secret failures to one BIP
-            error_msg = f"Error fetching secrets for {bip_name}: {e}"
+        except ValueError as e:
+            error_msg = f"Invalid configuration for {bip_name}: {e}"
             logger.error(error_msg)
             _safe_notify(
                 email_sender,
-                subject=f"[{_now_str()}] [{bip_name}] Secrets fetch error",
+                subject=f"[{_now_str()}] [{bip_name}] Configuration error",
                 body=error_msg,
             )
             summaries.append(

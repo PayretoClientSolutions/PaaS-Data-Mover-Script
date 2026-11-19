@@ -21,7 +21,7 @@ The script sends notifications for operational failures and BIPs with no matchin
 
 - Python 3.12+
 - [`uv`](https://docs.astral.sh/uv/)
-- Network access to the EU Infisical host, configured SFTP servers, GCS, and `smtp.gmail.com:587`
+- Network access to configured SFTP servers, GCS, and `smtp.gmail.com:587`
 - Readable SFTP private keys on the machine running the job
 - A GCS service-account credentials file
 
@@ -37,62 +37,39 @@ The two local configuration files below are gitignored and must exist before the
 
 ### `config/.env`
 
-This file bootstraps the Infisical SDK:
+For a new installation, create a private config file from the template:
 
-```dotenv
-INFISICAL_TOKEN=
-INFISICAL_PROJECT_ID=
-INFISICAL_PROJECT_SLUG=
-INFISICAL_ENVIRONMENT=dev
+```bash
+(umask 077 && cp -n config/.env.example config/.env)
 ```
 
-`INFISICAL_ENVIRONMENT` is optional and defaults to `dev`. All remaining secrets are loaded from `https://eu.infisical.com`.
+For an existing installation, edit the existing file. Copy each value from the former `/SMTP` and partner secret paths into its prefixed key. For example, `/SMTP` → `PASSWORD` becomes `SMTP_PASSWORD`, and `/prtpe` → `PASSWORD` becomes `PRTPE_PASSWORD`. Remove the old bootstrap keys after migration and restrict the file to the job account (`chmod 600 config/.env`).
+
+Set the SMTP username, password, sender address, and comma-separated recipients. Subject prefix and app name are optional. The sender uses Gmail on port 587 with STARTTLS. Values are read directly from this file with variable interpolation disabled.
 
 ### `config/gcs.json`
 
 Place the GCS service-account credentials at `config/gcs.json`. The script sets this path as `GOOGLE_APPLICATION_CREDENTIALS` while initializing each BIP's GCS client.
 
-### Infisical `/SMTP`
+### Per-BIP settings
 
-The `/SMTP` path supplies:
-
-- `USERNAME`
-- `PASSWORD`
-- `FROM_ADDR`
-- `TO_ADDRS`, as a comma-separated list
-- `SUBJECT_PREFIX`
-- `APP_NAME`
-
-The SMTP server is fixed to Gmail on port 587 with STARTTLS.
-
-### Infisical BIP paths
-
-Production jobs currently run in this order:
-
-| BIP | Secret path |
-| --- | --- |
-| PRTPE | `/prtpe` |
-| PRTSO | `/prtso` |
-| SOLID | `/solid` |
-| BIGE | `/bige` |
-
-Each path supports these values:
+Jobs run in the order `PRTPE`, `PRTSO`, `SOLID`, `BIGE`. Prefix each key below with the job name and an underscore. Missing or empty optional settings use the indicated defaults.
 
 | Key | Purpose | Default |
 | --- | --- | --- |
-| `HOSTNAME` | SFTP hostname | none |
-| `USERNAME` | SFTP username | none |
+| `HOSTNAME` | SFTP hostname | required |
+| `USERNAME` | SFTP username | required |
 | `PORT` | SFTP port | `22` |
 | `PASSWORD` | Private-key passphrase, not an SFTP password | empty |
 | `PATH_TO_KEY` | Local private-key path | required |
 | `LOCAL_PATH` | Existing local staging directory | `.` |
-| `BUCKET_NAME` | Destination GCS bucket | none |
+| `BUCKET_NAME` | Destination GCS bucket | required |
 | `TARGET_FILE_TYPE` | Filename suffix to process | `.csv` |
 | `REMOTE_PATH` | Remote directory to scan | `/REPORTS` |
 
 `PATH_TO_KEY` and `LOCAL_PATH` expand `~`. Authentication is key-only: RSA is attempted before Ed25519, and RSA keys must be exactly 4096 bits.
 
-Enabled jobs and their order are controlled by `BIP_JOBS` in `src/main.py`. Commented entries are available for the separate `*_test` Infisical paths.
+Enabled jobs and their order are controlled by `BIP_JOBS` in `src/main.py`. For a test job, use a distinct label such as `PRTPE_TEST` and configure its matching `PRTPE_TEST_` keys.
 
 ## Running
 
@@ -134,7 +111,7 @@ The tests mock external integrations and do not perform SFTP, GCS, or SMTP opera
 
 | Path | Responsibility |
 | --- | --- |
-| `src/main.py` | Infisical setup, job orchestration, and summary generation |
+| `src/main.py` | Local configuration, job orchestration, and summary generation |
 | `src/fetcher/` | SFTP download, GCS upload, and file cleanup |
 | `src/sender/` | SMTP messages |
 | `src/models/` | Runtime configuration and result dataclasses |
