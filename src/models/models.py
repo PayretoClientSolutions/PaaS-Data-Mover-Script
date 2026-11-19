@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import List
 
 
 @dataclass
@@ -51,6 +50,7 @@ class SFTPConfig:
         target_file_type: Remote file suffix to process.
         remote_path: Remote SFTP directory to scan.
     """
+
     hostname: str
     username: str
     port: int
@@ -86,7 +86,7 @@ class EmailConfig:
     username: str | None = None
     password: str | None = None
     from_addr: str = ""
-    to_addrs: List[str] = field(default_factory=list)
+    to_addrs: list[str] = field(default_factory=list)
     use_tls: bool = True
     use_ssl: bool = False
     subject_prefix: str = ""

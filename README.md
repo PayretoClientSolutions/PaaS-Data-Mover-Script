@@ -25,7 +25,7 @@ The script sends notifications for operational failures and BIPs with no matchin
 - Readable SFTP private keys on the machine running the job
 - A GCS service-account credentials file
 
-Install the dependencies from the repository root:
+Install the runtime and development dependencies, including Ruff and ty, from the repository root:
 
 ```bash
 uv sync
@@ -76,7 +76,7 @@ Enabled jobs and their order are controlled by `BIP_JOBS` in `src/main.py`. For 
 Run the entrypoint directly from the repository root:
 
 ```bash
-uv run python src/main.py
+uv run src/main.py
 ```
 
 Direct execution is required by the current top-level imports under `src/`; the project does not define an installed CLI entrypoint.
@@ -84,6 +84,28 @@ Direct execution is required by the current top-level imports under `src/`; the 
 This command performs real downloads, uploads, deletions, and email sends. Use test BIP entries and test credentials when validating changes rather than running the production job list.
 
 The script appends logs to `app.log` at the repository root and also writes them to the console. Per-file and per-BIP failures are included in the final summary instead of terminating the full run.
+
+## Development checks
+
+Ruff is the local linter and formatter, and ty is the type checker. Run the lint, format, type, and offline regression checks from the repository root before submitting changes:
+
+```bash
+uv run ruff check .
+uv run ruff format --check .
+uv run ty check
+uv run python -m unittest discover -s tests -v
+```
+
+To apply safe lint fixes and format the code locally:
+
+```bash
+uv run ruff check --fix .
+uv run ruff format .
+```
+
+Rerun the checks after applying fixes. Ruff and ty are provided by the `dev` dependency group in `pyproject.toml` and are installed by `uv sync`.
+
+The tests mock external integrations and do not perform SFTP, GCS, or SMTP operations.
 
 ## Project layout
 
@@ -93,5 +115,3 @@ The script appends logs to `app.log` at the repository root and also writes them
 | `src/fetcher/` | SFTP download, GCS upload, and file cleanup |
 | `src/sender/` | SMTP messages |
 | `src/models/` | Runtime configuration and result dataclasses |
-
-Run the configuration regression tests with `uv run python -m unittest discover -s tests`.

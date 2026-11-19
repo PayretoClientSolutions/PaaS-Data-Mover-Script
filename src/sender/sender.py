@@ -3,9 +3,9 @@ import mimetypes
 import smtplib
 import ssl
 import traceback
+from collections.abc import Iterable
 from email.message import EmailMessage
 from pathlib import Path
-from typing import Iterable, Optional
 
 from models import EmailConfig
 
@@ -84,7 +84,7 @@ class Sender:
             return f"{prefix} {subject}"
         return subject
 
-    def _ensure_recipients(self, to_addrs: Optional[Iterable[str]]) -> list[str]:
+    def _ensure_recipients(self, to_addrs: Iterable[str] | None) -> list[str]:
         """
         Return non-empty recipients from an override or the default config.
 
@@ -104,9 +104,9 @@ class Sender:
         self,
         subject: str,
         body: str,
-        html: Optional[str] = None,
-        to_addrs: Optional[Iterable[str]] = None,
-        attachments: Optional[Iterable[Path]] = None,
+        html: str | None = None,
+        to_addrs: Iterable[str] | None = None,
+        attachments: Iterable[Path] | None = None,
     ) -> None:
         """
         Send an email message.
@@ -145,7 +145,7 @@ class Sender:
                 msg.add_attachment(
                     data, maintype=maintype, subtype=subtype, filename=Path(path).name
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - unreadable attachments are skipped
                 logger.warning(f"Failed to attach file {path}: {e}")
 
         try:
@@ -159,8 +159,8 @@ class Sender:
     def send_exception(
         self,
         exc: BaseException,
-        context: Optional[dict] = None,
-        to_addrs: Optional[Iterable[str]] = None,
+        context: dict | None = None,
+        to_addrs: Iterable[str] | None = None,
     ) -> None:
         """
         Convenience method to send a formatted exception email with traceback.

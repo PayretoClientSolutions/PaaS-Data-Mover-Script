@@ -34,19 +34,23 @@ class LocalConfigTest(unittest.TestCase):
             "SMTP_TO_ADDRS": "a@example.test, b@example.test",
         }
         for job in main.BIP_JOBS:
-            values.update({
-                f"{job}_HOSTNAME": job.lower(),
-                f"{job}_USERNAME": job + "-user",
-                f"{job}_PATH_TO_KEY": "/" + job,
-                f"{job}_BUCKET_NAME": job.lower() + "-bucket",
-            })
+            values.update(
+                {
+                    f"{job}_HOSTNAME": job.lower(),
+                    f"{job}_USERNAME": job + "-user",
+                    f"{job}_PATH_TO_KEY": "/" + job,
+                    f"{job}_BUCKET_NAME": job.lower() + "-bucket",
+                }
+            )
         del values["PRTPE_HOSTNAME"]
         values.update(PRTSO_PASSWORD="partner-passphrase", BIGE_PORT="2222")
         lines = []
         for line in template.splitlines():
             key = line.partition("=")[0]
             lines.append(f"{key}={values[key]}" if key in values else line)
-        self.env.write_text("\n".join(line for line in lines if line != "PRTSO_PORT=22"))
+        self.env.write_text(
+            "\n".join(line for line in lines if line != "PRTSO_PORT=22")
+        )
         main.main()
 
         mail = self.sender.call_args.kwargs["config"]

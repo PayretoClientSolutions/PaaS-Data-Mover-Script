@@ -10,6 +10,8 @@ from fetcher import Fetcher
 from models import BIPSummary, EmailConfig, SFTPConfig
 from sender import Sender
 
+logger = logging.getLogger(__name__)
+
 CONFIG_DIR = Path(__file__).resolve().parents[1] / "config"
 BIP_JOBS = ["PRTPE", "PRTSO", "SOLID", "BIGE"]
 
@@ -93,15 +95,15 @@ def group_settings(
 
 def _now_str() -> str:
     """Return the current local timestamp for logs and email subjects."""
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # noqa: DTZ005
 
 
 def _safe_notify(email_sender: Sender, *, subject: str, body: str) -> None:
     """Send an email notification without propagating SMTP failures."""
     try:
         email_sender.send(subject=subject, body=body)
-    except Exception as notify_error:
-        logging.error(f"Failed to send notification email: {notify_error}")
+    except Exception as notify_error:  # noqa: BLE001 - notifications must not abort work
+        logger.error(f"Failed to send notification email: {notify_error}")
 
 
 def _status_emoji(status: str) -> str:
@@ -138,7 +140,7 @@ def _build_summary_text(summaries: list[BIPSummary]) -> str:
 
 def _build_summary_html(summaries: list[BIPSummary]) -> str:
     """Build the HTML body for the summary email."""
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # noqa: DTZ005
     rows_html = []
     for s in summaries:
         rows_html.append(
@@ -239,10 +241,8 @@ def fetch_and_move(
     try:
         port = int(raw_port)
     except (TypeError, ValueError):
-        error_msg = (
-            f"Invalid {bip_name}_PORT. PORT must be an integer."
-        )
-        logging.error(error_msg)
+        error_msg = f"Invalid {bip_name}_PORT. PORT must be an integer."
+        logger.error(error_msg)
         _safe_notify(
             email_sender,
             subject=f"[{_now_str()}] [{bip_name}] Port validation error",
@@ -274,7 +274,7 @@ def fetch_and_move(
     )
 
     # initialize Fetcher class
-    logging.info(f"> > > > > FETCHER task started for {bip_name} < < < < <")
+    logger.info(f"> > > > > FETCHER task started for {bip_name} < < < < <")
 
     try:
         fetcher = Fetcher(
@@ -286,7 +286,7 @@ def fetch_and_move(
 
     except SystemExit as e:
         error_msg = f"SystemExit occurred while running Fetcher for {bip_name}: {e}"
-        logging.error(error_msg)
+        logger.error(error_msg)
         _safe_notify(
             email_sender,
             subject=f"[{_now_str()}] [{bip_name}] SystemExit occurred",
@@ -303,9 +303,9 @@ def fetch_and_move(
             status="failed",
         )
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - isolate failures to one BIP
         error_msg = f"Error occurred while running Fetcher for {bip_name}: {e}"
-        logging.error(error_msg)
+        logger.error(error_msg)
         _safe_notify(
             email_sender,
             subject=f"[{_now_str()}] [{bip_name}] Fetcher error",
@@ -328,20 +328,24 @@ def main() -> None:
 
     # Start logging both in the terminal and the log file.
     init_logger()
-    logging.info("Script started.")
+    logger.info("Script started.")
 
     env_path = CONFIG_DIR / ".env"
     try:
         with env_path.open(encoding="utf-8") as stream:
             settings = {
                 key: value
-                for key, value in dotenv_values(stream=stream, interpolate=False).items()
+                for key, value in dotenv_values(
+                    stream=stream, interpolate=False
+                ).items()
                 if value is not None
             }
         sc_dct_email = group_settings(
             settings, "SMTP", ("USERNAME", "PASSWORD", "FROM_ADDR", "TO_ADDRS")
         )
-        recipients = [addr.strip() for addr in sc_dct_email["TO_ADDRS"].split(",") if addr.strip()]
+        recipients = [
+            addr.strip() for addr in sc_dct_email["TO_ADDRS"].split(",") if addr.strip()
+        ]
         if not recipients:
             raise ValueError("SMTP_TO_ADDRS requires at least one recipient")
         email_sender = init_sender(
@@ -356,25 +360,27 @@ def main() -> None:
             subject_prefix=sc_dct_email.get("SUBJECT_PREFIX", ""),
             app_name=sc_dct_email.get("APP_NAME", ""),
         )
-    except Exception as e:
-        logging.error(f"Error initializing email sender: {e}")
+    except Exception as e:  # noqa: BLE001 - initialization failures terminate cleanly
+        logger.error(f"Error initializing email sender: {e}")
         sys.exit(1)
 
     # init path to gcs credentials file
     path_to_gcs_file = CONFIG_DIR / "gcs.json"
     if not path_to_gcs_file.exists():
-        logging.error(f"GCS credentials file not found at: {path_to_gcs_file}")
+        logger.error(f"GCS credentials file not found at: {path_to_gcs_file}")
         sys.exit(1)
 
     summaries: list[BIPSummary] = []
     for bip_name in BIP_JOBS:
         try:
             sc_dct = group_settings(
-                settings, bip_name, ("HOSTNAME", "USERNAME", "PATH_TO_KEY", "BUCKET_NAME")
+                settings,
+                bip_name,
+                ("HOSTNAME", "USERNAME", "PATH_TO_KEY", "BUCKET_NAME"),
             )
         except ValueError as e:
             error_msg = f"Invalid configuration for {bip_name}: {e}"
-            logging.error(error_msg)
+            logger.error(error_msg)
             _safe_notify(
                 email_sender,
                 subject=f"[{_now_str()}] [{bip_name}] Configuration error",
@@ -411,9 +417,9 @@ def main() -> None:
             body=text_body,
             html=html_body,
         )
-        logging.info("Daily summary email sent successfully.")
-    except Exception as e:
-        logging.error(f"Failed to send daily summary email: {e}")
+        logger.info("Daily summary email sent successfully.")
+    except Exception as e:  # noqa: BLE001 - summary email failure must not mask results
+        logger.error(f"Failed to send daily summary email: {e}")
 
 
 if __name__ == "__main__":
