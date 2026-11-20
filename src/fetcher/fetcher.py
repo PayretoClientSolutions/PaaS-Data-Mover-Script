@@ -1,7 +1,7 @@
 import logging
 import os
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import paramiko
@@ -72,7 +72,7 @@ class Fetcher:
     @staticmethod
     def _now_str() -> str:
         """Return the current local timestamp for logs and email subjects."""
-        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # noqa: DTZ005
+        return datetime.now(UTC).astimezone().strftime("%Y-%m-%d %H:%M:%S")
 
     def _safe_notify(self, *, subject: str, body: str) -> None:
         """Send a notification email without propagating SMTP failures."""

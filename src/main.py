@@ -1,7 +1,7 @@
 import html
 import logging
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from dotenv import dotenv_values
@@ -95,7 +95,7 @@ def group_settings(
 
 def _now_str() -> str:
     """Return the current local timestamp for logs and email subjects."""
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # noqa: DTZ005
+    return datetime.now(UTC).astimezone().strftime("%Y-%m-%d %H:%M:%S")
 
 
 def _safe_notify(email_sender: Sender, *, subject: str, body: str) -> None:
@@ -140,7 +140,7 @@ def _build_summary_text(summaries: list[BIPSummary]) -> str:
 
 def _build_summary_html(summaries: list[BIPSummary]) -> str:
     """Build the HTML body for the summary email."""
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # noqa: DTZ005
+    now_str = _now_str()
     rows_html = []
     for s in summaries:
         rows_html.append(

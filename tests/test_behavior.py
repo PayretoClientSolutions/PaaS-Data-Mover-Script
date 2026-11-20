@@ -4,7 +4,7 @@ import logging
 import sys
 import tempfile
 import unittest
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -22,7 +22,9 @@ sender_module = importlib.import_module("sender.sender")
 class FixedDateTime(datetime):
     @classmethod
     def now(cls, tz=None):
-        return cls(2026, 8, 11, 14, 5, 9)
+        if tz is None:
+            raise AssertionError("Expected a timezone-aware clock")
+        return cls(2026, 8, 11, 14, 5, 9, tzinfo=UTC).astimezone(tz)
 
 
 class BehaviorRegressionTests(unittest.TestCase):
@@ -33,14 +35,19 @@ class BehaviorRegressionTests(unittest.TestCase):
         self.assertIsNotNone(SFTPConfig)
 
     def test_timestamps_keep_local_wall_clock_format(self):
+        expected = (
+            datetime(2026, 8, 11, 14, 5, 9, tzinfo=UTC)
+            .astimezone()
+            .strftime("%Y-%m-%d %H:%M:%S")
+        )
         with (
             patch.object(main, "datetime", FixedDateTime),
             patch.object(fetcher_module, "datetime", FixedDateTime),
         ):
-            self.assertEqual(main._now_str(), "2026-08-11 14:05:09")
-            self.assertEqual(Fetcher._now_str(), "2026-08-11 14:05:09")
+            self.assertEqual(main._now_str(), expected)
+            self.assertEqual(Fetcher._now_str(), expected)
             self.assertIn(
-                "Generated on: 2026-08-11 14:05:09",
+                f"Generated on: {expected}",
                 main._build_summary_html([]),
             )
 
