@@ -1,7 +1,7 @@
 import logging
 import os
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import paramiko
@@ -72,7 +72,7 @@ class Fetcher:
     @staticmethod
     def _now_str() -> str:
         """Return the current local timestamp for logs and email subjects."""
-        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # noqa: DTZ005
+        return datetime.now(UTC).astimezone().strftime("%Y-%m-%d %H:%M:%S")
 
     def _safe_notify(self, *, subject: str, body: str) -> None:
         """Send a notification email without propagating SMTP failures."""
@@ -173,11 +173,7 @@ class Fetcher:
 
                     # If RSA, enforce 4096-bit length
                     if isinstance(private_key, paramiko.RSAKey):
-                        bits = None
-                        if hasattr(private_key, "get_bits"):
-                            bits = private_key.get_bits()
-                        elif hasattr(private_key, "bits"):
-                            bits = private_key.bits
+                        bits = private_key.get_bits()
                         if bits != 4096:
                             logger.fatal(
                                 f"RSA key loaded but key size is {bits}; server requires 4096-bit RSA."
