@@ -173,11 +173,7 @@ class Fetcher:
 
                     # If RSA, enforce 4096-bit length
                     if isinstance(private_key, paramiko.RSAKey):
-                        bits = None
-                        if hasattr(private_key, "get_bits"):
-                            bits = private_key.get_bits()
-                        elif hasattr(private_key, "bits"):
-                            bits = private_key.bits
+                        bits = private_key.get_bits()
                         if bits != 4096:
                             logger.fatal(
                                 f"RSA key loaded but key size is {bits}; server requires 4096-bit RSA."
